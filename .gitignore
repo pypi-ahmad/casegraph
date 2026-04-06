@@ -51,6 +51,9 @@ logs/
 .milvus/
 .chroma/
 
+# Local database
+.casegraph/
+
 # Eval results (Promptfoo output)
 services/evals/results/
 services/evals/config/.env

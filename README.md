@@ -90,9 +90,7 @@ For the full problem statement, solution thesis, guardrails, and architecture-to
 | `apps/agent-runtime` | Agent and workflow runtime boundary | LangGraph, LangChain Core, FastAPI |
 | `packages/agent-sdk` | Shared Python and TypeScript contracts | Pydantic, TypeScript |
 | `packages/workflows` | Shared workflow definitions and registry metadata | Python, TypeScript |
-| `packages/ui` | Shared frontend components | React |
-| `packages/config` | Shared configuration constants | TypeScript |
-| `services` | OCR, retrieval, and eval-support foundations | Python, docs, scripts |
+| `services/evals` | Eval and observability assets | Promptfoo, Langfuse, Python |
 | `infra` | Local-first environment references | env examples and setup docs |
 | `docs` | Product and foundation documentation | Markdown |
 
@@ -106,12 +104,8 @@ casegraph/
 │   └── agent-runtime/    # 🤖 LangGraph-based runtime boundary
 ├── packages/
 │   ├── agent-sdk/        # 📦 Shared TS + Python contracts
-│   ├── workflows/        # 🧭 Workflow definitions and registry metadata
-│   ├── ui/               # 🎨 Shared React UI components
-│   └── config/           # 🔧 Shared frontend configuration
+│   └── workflows/        # 🧭 Workflow definitions and registry metadata
 ├── services/
-│   ├── ocr/              # 🧾 OCR foundation artifacts
-│   ├── retrieval/        # 🔎 Retrieval foundation artifacts
 │   └── evals/            # 📊 Eval and observability assets
 ├── infra/                # 🛠️ Local-first environment references
 └── docs/                 # 📚 Foundation and product documentation
@@ -429,18 +423,13 @@ See [docs/target-pack-foundation.md](docs/target-pack-foundation.md) for the det
 
 See [docs/reviewed-release-foundation.md](docs/reviewed-release-foundation.md) for the detailed scope and honest limitations.
 
-- Monorepo structure with pnpm workspaces (JS/TS)
-- Next.js App Router minimal landing page
-- FastAPI backend with `/health` and `/info` endpoints
-- BYOK provider registry and validation/model-discovery endpoints for OpenAI, Anthropic, and Gemini
-
-## Auditability Foundation
+### Auditability Foundation
 
 CaseGraph now persists an append-oriented audit trail for a focused set of real mutations across case, checklist, review, extraction, packet, submission, automation, communication, and workflow-pack flows. It also stores a linked decision ledger and artifact lineage records so the case audit UI can explain how downstream artifacts were derived from persisted case state.
 
 This is operational traceability for local development and internal review. It does not claim WORM storage, cryptographic tamper-proofing, external notarization, formal compliance archiving, or retroactive reconstruction of history that was never recorded. See [docs/auditability-foundation.md](docs/auditability-foundation.md) for the exact scope.
 
-## Human Validation Foundation
+### Human Validation Foundation
 
 CaseGraph now includes a human-in-the-loop validation layer between machine-generated outputs (extraction fields, requirement assessments) and operational use. Operators can accept, correct, reject, or flag extracted fields and confirm, dispute, or request more information on checklist requirements — without ever deleting or silently overwriting the original machine outputs.
 
@@ -454,120 +443,6 @@ CaseGraph now includes a human-in-the-loop validation layer between machine-gene
 - **Shared contracts**: Full Python + TypeScript type parity in the agent-sdk for 20+ validation types, request/response schemas, and new audit/decision/packet/workflow literals.
 
 See [docs/human-validation-foundation.md](docs/human-validation-foundation.md) for the detailed scope and honest limitations.
-- Agent runtime with typed supervisor graph, agent registry, and workflow registry
-- Three placeholder agents (intake, router, review) demonstrating registration, typed execution, and inter-agent handoff
-- Two placeholder workflow definitions (intake-review, intake-route-review) demonstrating multi-step workflows
-- Shared agent-sdk with TypeScript types and Python Pydantic schemas for agents, handoffs, and provider discovery
-- Shared agent-sdk contracts for normalized document ingestion artifacts
-- Typed workflow definitions and registry in packages/workflows
-- API proxy endpoints for runtime metadata (`GET /agents`, `GET /workflows`)
-- API document ingestion endpoints for readable PDFs, scanned PDFs, and image uploads (`GET /documents/capabilities`, `POST /documents/ingest`)
-- Readable PDF extraction using PyMuPDF with page/block geometry when available
-- OCR-enabled scanned PDF and image ingestion through a replaceable OCR adapter using RapidOCR today
-- Web UI pages for provider settings and agents/workflows metadata
-- Web UI page for document ingestion inspection and normalized extraction summaries
-- Knowledge retrieval foundation with real vector indexing and semantic search
-- Local-first embedding via sentence-transformers (all-MiniLM-L6-v2, 384 dimensions)
-- ChromaDB local vector store (Milvus Lite adapter also included for Linux environments)
-- Chunking pipeline that preserves document/page/block source references from ingestion
-- Knowledge API endpoints for indexing, search, and capabilities (`GET /knowledge/capabilities`, `POST /knowledge/index`, `POST /knowledge/search`)
-- Web UI knowledge inspector for indexing and searching the knowledge base
-- Visual flow inspection page using React Flow (xyflow) for inspecting registered agents, workflows, handoff relationships, and graph topology
-- Backend topology endpoint that derives graph nodes and edges from real runtime metadata (no fake data)
-- Custom node components for agents and workflows with typed metadata display
-- Shared topology contracts (TypeScript + Python) for nodes, edges, and graph responses
-- Service placeholders for OCR and retrieval
-- Eval foundation configs/docs/scripts under services/evals
-- Promptfoo evaluation foundation with 3 benchmark config scaffolds (provider comparison, retrieval quality, agent/workflow output)
-- Langfuse observability instrumentation hooks at provider validation/discovery and knowledge search boundaries (safe-degrading when unconfigured)
-- Shared eval/observability contracts (TypeScript + Python) for integration status, benchmark metadata, and capabilities
-- Eval capabilities API endpoint (`GET /evals/capabilities`) reporting configured integrations and available benchmark suites
-- Web UI eval inspector page for viewing integration status, benchmark configs, and current limitations
-- Local run scripts for Promptfoo evals (bash + PowerShell)
-- Automation/tool foundation with typed tool registry, base tool abstraction, and capability discovery
-- Playwright MCP tool adapters (navigate, snapshot) with read-only safety defaults and adapter boundary
-- Computer-use provider abstraction with typed capability metadata for Anthropic, OpenAI, and Gemini
-- Automation capabilities API endpoints (`GET /automation/capabilities`, `GET /automation/tools`) reporting registered tools, backends, and provider support
-- Web UI automation inspector page for viewing registered tools, backend status, and computer-use provider metadata
-- Persistent case/workspace foundation with local SQLite-backed case records and workflow bindings
-- Persisted ingested-document summaries for case linking (`GET /documents`) without persisting raw file binaries
-- Case-to-document reference endpoints for attaching existing ingested documents to cases
-- Tracked workflow run records tied to cases and real workflow IDs, including one built-in generic path (`provider-task-execution`) that invokes the shared task execution service
-- Protected internal case workspace UI for case creation, case detail, document linking, and run record inspection
-- Local-first login with Auth.js credentials provider and bcrypt-hashed env-defined users
-- JWT-based sessions with protected internal pages and session-aware dashboard header
-- Shared auth types (SessionUser, AuthStatus, UserRole) in agent-sdk
-- Local-first infrastructure setup
-- Provider-backed task execution foundation with BYOK completions against OpenAI, Anthropic, and Gemini
-- Task registry with three generic infrastructure tasks (summarize_text, classify_text, extract_structured_fields)
-- Task execution service that resolves tasks, routes to provider adapters, executes completions, and normalizes results
-- Structured output foundation using each provider's native JSON schema mechanism (OpenAI json_schema, Anthropic tool-use, Gemini responseSchema)
-- Task execution persistence with SQLite-backed execution records
-- Task execution API endpoints (`GET /tasks`, `POST /tasks/execute`) with full lifecycle event tracking
-- Shared task execution contracts in agent-sdk (TypeScript + Python) for task definitions, execution requests, results, and events
-- Protected task execution lab UI for interactive BYOK task execution with structured output and event inspection
-- Langfuse trace_span integration in the task execution service for observability
-- Retrieval-augmented task execution foundation connecting knowledge retrieval to provider-backed task execution
-- RAG task registry with three evidence-backed generic tasks (answer_with_evidence, summarize_with_evidence, extract_with_evidence)
-- Evidence selection service that retrieves chunks from the vector store, applies context truncation, and formats numbered evidence blocks
-- Citation extraction that honestly maps [N] references in model output to retrieved evidence chunks
-- Case-scoped retrieval that restricts evidence search to documents linked to a specific case
-- Shared RAG contracts in agent-sdk (TypeScript + Python) for evidence references, citations, retrieval scope, grounding metadata, and RAG-specific results
-- RAG API endpoints (`GET /rag/tasks`, `POST /rag/execute`) with full retrieval + execution lifecycle event tracking and shared execution-record persistence
-- Built-in `rag-task-execution` case-run workflow path that executes evidence-backed tasks through the run foundation
-- Protected evidence-backed task lab UI for interactive RAG execution with evidence chunk inspection, citation display, and retrieval scope selection
-- Langfuse trace_span integration in the RAG execution service for observability
-- Domain pack registry with eight built-in packs (medical, medical insurance, insurance, taxation × US, India)
-- Jurisdiction-aware case type templates with workflow bindings, extraction bindings, and document requirement definitions
-- Domain-scoped case creation with persisted domain context
-- Domain pack API endpoints for pack discovery, case type metadata, and document requirements
-- Protected domain pack explorer UI for browsing packs, case types, and metadata
-- Case readiness checklist generation from domain pack document requirements with coverage evaluation, document/extraction linkage, and readiness summary
-- Readiness API endpoints for checklist generation, evaluation, readiness summary, and operator item overrides
-- Protected checklist review UI for inspecting requirement coverage, linked artifacts, and readiness status
-- Explicit case stage lifecycle with recorded manual stage transitions
-- Deterministic follow-up action generation from explicit case, checklist, extraction, and run state
-- Protected operator queue and case review UI for triage, stage transitions, follow-up generation, and manual review notes
-- Approval-gated automation execution foundation with Playwright MCP integration, step-level approval checkpoints, resumable paused runs, step journal, artifact capture, event timeline, and honest blocked-step reporting
-- Shared execution contracts (Python + TypeScript) for automation runs, executed steps, artifacts, events, checkpoint records, override history, paused-run metadata, session metadata, and guardrail enforcement
-- Approval gating enforcement layer that validates draft status, plan status, and operator approval before execution proceeds
-- Execution step classification: `open_target` can execute deterministically through Playwright MCP; `navigate_section` and `review_before_submit` route through explicit operator checkpoints; `populate_field_placeholder`, `attach_document_placeholder`, and `submit_blocked_placeholder` are always blocked
-- Real Playwright MCP navigate step execution with page metadata and text log artifact capture when the MCP server is reachable; honest connection-error reporting when it is not
-- Execution API endpoints for launching runs, listing case runs, inspecting checkpoints and override history, recording approve/skip/block decisions, resuming paused runs, and loading run detail, steps, artifacts, and event journals
-- Protected automation run inspector UI at `/cases/{caseId}/automation-runs` for launching approved-plan execution, reviewing checkpoint metadata, recording operator decisions, and resuming paused runs
-- Six persistence tables/records underpin the execution layer: `automation_runs`, `automation_executed_steps`, `automation_run_artifacts`, `automation_run_events`, `automation_run_checkpoints`, and `automation_checkpoint_overrides`
-- Domain workflow pack orchestration with ten built-in packs: Prior Auth Review (US medical insurance), Pre-Claim Review (India medical insurance), Insurance Claim Intake Review (US), Insurance Claim Intake Review (India), Coverage Correspondence Review (US), Coverage Correspondence Review (India), Tax Intake Packet Review (US), Tax Intake Packet Review (India), Tax Notice Review (US), and Tax Notice Review (India)
-- Seven-stage workflow sequence: intake document check, extraction pass, checklist refresh, readiness evaluation, action generation, packet assembly, and submission draft preparation
-- Workflow pack registry with metadata discovery, case-type compatibility filtering, and honest limitation disclosure
-- Orchestration service that composes extraction, readiness, packet assembly, and submission-draft services into a sequenced run with dependency tracking and failure propagation
-- Deterministic review recommendation derived from explicit stage outputs (no fabricated clinical or regulatory judgments)
-- Shared workflow pack contracts in agent-sdk (TypeScript + Python) for pack metadata, stage definitions, stage results, run records, review recommendations, and API responses
-- Workflow pack API endpoints for pack discovery, detail inspection, execution, run detail, and case-scoped run listing
-- Persistence table (`workflow_pack_runs`) for run state, stage results, and review recommendations
-- Protected workflow pack workspace UI at `/cases/{caseId}/workflow-packs` for executing packs, inspecting stage-by-stage results, and viewing operator review recommendations
-- Communication draft foundation with three built-in templates: missing document request, internal handoff note, and packet cover note
-- Deterministic communication draft builders grounded in explicit case, readiness, action, packet, workflow, and optional retrieval evidence state only
-- Optional provider-assisted wording rewrite through the shared BYOK task-execution path, with deterministic fallback when provider output is unavailable or invalid
-- Persisted case-scoped communication draft records with source metadata, source-entity references, evidence references, review metadata, and copy/export artifacts
-- Communication draft API endpoints for template discovery, draft generation, case-scoped listing, detail, source inspection, and review metadata updates
-- Protected communication draft workspace UI at `/cases/{caseId}/communication-drafts` for creating drafts, reviewing grounded state, and copying/exporting text artifacts
-
-## Communication Draft Limitations
-
-- Communication drafts are reviewable text artifacts only. No outbound delivery, recipient resolution, channel routing, or send-status tracking is implemented.
-- Review states beyond `needs_human_review` are placeholder values (`revised_placeholder`, `approved_placeholder`, `archived_placeholder`). A first-class approval/revision state machine is not yet implemented.
-- Multiple drafts with the same template can coexist for a single case. There is no supersession or deduplication logic.
-- Document-evidence retrieval is limited to one linked document per query in the current vector-store path.
-- Drafts are generated from the case state at the time of creation and are not automatically refreshed when case state changes.
-- No audit trail for draft modifications; only the latest review metadata is persisted.
-
-## Workflow Pack Limitations
-
-- Workflow packs are operational review flows only. They do not encode payer-specific policies, clinical guidance, claim adjudication, coverage determination, tax-law interpretation, jurisdiction-specific filing rules, insurer-specific or agency-specific rules, or legal/compliance decisions.
-- The extraction stage reports on persisted extraction runs for currently linked documents. It does not automatically execute new extraction jobs.
-- Packet assembly reflects current case state and can run with incomplete readiness; it does not certify packet completeness for any external target.
-- Submission draft preparation creates a draft artifact and a dry-run automation plan only when packet state supports it. No live submission is attempted.
-- Suggested review stages are operator-facing guidance derived from explicit state, not automatic case-stage transitions.
 
 ## 🚧 What's Not Included Yet
 
@@ -576,7 +451,7 @@ See [docs/human-validation-foundation.md](docs/human-validation-foundation.md) f
 - Autonomous multi-agent reasoning
 - Visual flow builder (current topology page is read-only inspection)
 - General workflow execution engine (runtime-defined workflows remain metadata only; the built-in `provider-task-execution` and `rag-task-execution` case-run paths execute today)
-- Document annotation viewer / overlay review UI
+- Document annotation authoring (the review workspace displays read-only overlays; no drawing, editing, or collaborative annotation)
 - Table reconstruction, semantic extraction, or domain-specific parsing
 - Full RAG pipeline with multi-hop retrieval, conversation memory, and domain-specific prompts (single-turn evidence-backed generation exists)
 - Reranking, late interaction, or hybrid retrieval
@@ -587,7 +462,7 @@ See [docs/human-validation-foundation.md](docs/human-validation-foundation.md) f
 - Browser automation execution (a minimal approval-gated foundation exists for read-only navigate steps via Playwright MCP; write actions remain blocked)
 - Computer-use provider execution (capability metadata exists, execution does not)
 - Real workflow execution, queue workers, or persistent run state transitions for case runs
-- Comments, approvals, collaboration, notifications, or audit trails for cases/runs
+- Comments, collaboration, and notifications for cases/runs (audit trails exist; operator approval exists for automation execution)
 
 ## Current Topology Limitations
 
