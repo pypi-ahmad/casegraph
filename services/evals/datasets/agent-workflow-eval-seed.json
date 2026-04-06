@@ -1,0 +1,11 @@
+[
+  {
+    "vars": {},
+    "assert": [
+      {
+        "type": "javascript",
+        "value": "JSON.parse(output).length > 0"
+      }
+    ]
+  }
+]

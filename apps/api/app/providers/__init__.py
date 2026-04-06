@@ -1,0 +1,1 @@
+"""Provider foundation for BYOK validation and model discovery."""

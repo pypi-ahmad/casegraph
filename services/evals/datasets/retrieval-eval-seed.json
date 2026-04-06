@@ -1,0 +1,18 @@
+[
+  {
+    "vars": {
+      "query": "document processing pipeline"
+    },
+    "assert": [
+      {
+        "type": "javascript",
+        "value": "output !== 'no results'"
+      }
+    ]
+  },
+  {
+    "vars": {
+      "query": "agent orchestration workflow"
+    }
+  }
+]

@@ -1,0 +1,1 @@
+"""Automation capabilities — empty package."""

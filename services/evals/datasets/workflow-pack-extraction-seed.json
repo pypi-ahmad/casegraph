@@ -1,0 +1,47 @@
+[
+  {
+    "vars": {
+      "fields": "patient_name, date_of_service, provider_name, authorization_number",
+      "document_text": "PRIOR AUTHORIZATION REQUEST\n\nPatient: Maria Santos\nDate of Service: 2026-03-15\nRequesting Provider: Dr. James Chen, Riverside Medical Group\nAuthorization #: PA-2026-44821\nProcedure: MRI Lumbar Spine\nDiagnosis: Chronic lower back pain (M54.5)\n\nClinical Notes: Patient presents with persistent lower back pain for 6 months, unresponsive to conservative treatment including physical therapy (12 sessions) and NSAIDs."
+    },
+    "assert": [
+      {
+        "type": "is-json"
+      },
+      {
+        "type": "javascript",
+        "value": "const obj = JSON.parse(output); Boolean(obj.patient_name || obj.patientName)"
+      }
+    ]
+  },
+  {
+    "vars": {
+      "fields": "notice_type, notice_date, taxpayer_name, tax_year, amount_due",
+      "document_text": "DEPARTMENT OF THE TREASURY\nINTERNAL REVENUE SERVICE\n\nNotice: CP2000\nDate: January 10, 2026\nTax Year: 2024\n\nDear John A. Mitchell,\n\nWe received information that doesn't match your 2024 tax return. Our records indicate you may owe an additional $3,245.00 in taxes.\n\nPlease review the enclosed information and respond within 30 days."
+    },
+    "assert": [
+      {
+        "type": "is-json"
+      },
+      {
+        "type": "javascript",
+        "value": "const obj = JSON.parse(output); Boolean(obj.notice_type || obj.noticeType)"
+      }
+    ]
+  },
+  {
+    "vars": {
+      "fields": "policy_number, insured_name, coverage_type, effective_date, claim_number",
+      "document_text": "COVERAGE DETERMINATION NOTICE\n\nPolicy Number: HO-2025-889341\nInsured: Patricia and Robert Williams\nCoverage Type: Homeowners (HO-3)\nEffective Date: June 1, 2025\n\nRe: Claim #CLM-2026-11234\n\nDear Mr. and Mrs. Williams,\n\nWe have completed our review of your claim for water damage to the basement of your property at 412 Oak Street, Springfield, IL 62704. Based on our inspection conducted on February 28, 2026, we have determined that the damage is covered under your policy."
+    },
+    "assert": [
+      {
+        "type": "is-json"
+      },
+      {
+        "type": "javascript",
+        "value": "const obj = JSON.parse(output); Boolean(obj.policy_number || obj.policyNumber)"
+      }
+    ]
+  }
+]

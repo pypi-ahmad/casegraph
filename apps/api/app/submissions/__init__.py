@@ -1,0 +1,1 @@
+"""Submission drafting and automation planning foundation."""

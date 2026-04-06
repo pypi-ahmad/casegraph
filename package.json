@@ -1,0 +1,25 @@
+{
+  "name": "casegraph",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "description": "Local-first BYOK multi-agent platform",
+  "scripts": {
+    "dev:web": "pnpm --filter @casegraph/web dev",
+    "build:web": "pnpm --filter @casegraph/web build",
+    "typecheck": "pnpm --filter @casegraph/web typecheck",
+    "test:api": "cd apps/api && ../.venv/Scripts/python -m pytest tests -q",
+    "validate": "pwsh -ExecutionPolicy Bypass -File scripts/validate.ps1",
+    "validate:sh": "bash scripts/validate.sh",
+    "verify": "pwsh -ExecutionPolicy Bypass -File scripts/validate.ps1",
+    "smoke:api": "pwsh -ExecutionPolicy Bypass -File scripts/smoke-api.ps1",
+    "smoke:api:sh": "bash scripts/smoke-api.sh",
+    "generate:status": "cd apps/api && ../.venv/Scripts/python ../../scripts/generate_status.py --write",
+    "bootstrap": "pwsh -ExecutionPolicy Bypass -File scripts/bootstrap.ps1",
+    "bootstrap:sh": "bash scripts/bootstrap.sh"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=10"
+  }
+}

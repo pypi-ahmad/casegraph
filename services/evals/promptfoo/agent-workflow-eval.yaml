@@ -1,0 +1,48 @@
+# Promptfoo — Agent / Workflow Structured Output Evaluation
+#
+# Evaluates agent and workflow metadata endpoints for structural
+# correctness and consistency. Uses HTTP provider targets against
+# the live CaseGraph API.
+#
+# This is a scaffold config. When real agent execution is added,
+# extend with LLM-powered output quality assertions.
+#
+# Usage:
+#   cd services/evals
+#   promptfoo eval -c promptfoo/agent-workflow-eval.yaml
+#
+# Requires: CaseGraph API + agent-runtime running locally
+
+description: "CaseGraph — Agent/Workflow Output Foundation"
+
+providers:
+  - id: http
+    label: "CaseGraph Agents API"
+    config:
+      url: "{{env.CASEGRAPH_API_URL}}/agents"
+      method: GET
+      headers:
+        Content-Type: "application/json"
+      transformResponse: "JSON.stringify(json.agents.map(a => ({ id: a.id, name: a.display_name, tasks: a.accepted_task_types })))"
+  - id: http
+    label: "CaseGraph Workflows API"
+    config:
+      url: "{{env.CASEGRAPH_API_URL}}/workflows"
+      method: GET
+      headers:
+        Content-Type: "application/json"
+      transformResponse: "JSON.stringify(json.workflows.map(w => ({ id: w.id, name: w.display_name, steps: w.steps.length })))"
+
+prompts:
+  - "List registered items"
+
+tests: "file://datasets/agent-workflow-eval-seed.json"
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: "JSON.parse(output).length > 0"
+    - type: latency
+      threshold: 5000
+
+outputPath: "./results/agent-workflow-eval-results.json"

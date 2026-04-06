@@ -1,0 +1,40 @@
+# Promptfoo — Provider Comparison Eval
+#
+# Compares output quality across OpenAI, Anthropic, and Gemini
+# for a small set of foundation-level prompts.
+#
+# This is a scaffold config. Replace seed prompts with real
+# domain-specific prompts when business logic is implemented.
+#
+# Usage:
+#   cd services/evals
+#   promptfoo eval -c promptfoo/provider-comparison.yaml
+#
+# Requires: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY
+
+description: "CaseGraph — Provider Comparison Foundation"
+
+providers:
+  - id: openai:chat:gpt-4o-mini
+    label: "OpenAI GPT-4o-mini"
+  - id: anthropic:messages:claude-3-5-haiku-latest
+    label: "Anthropic Claude 3.5 Haiku"
+  - id: google:gemini-2.0-flash
+    label: "Google Gemini 2.0 Flash"
+
+prompts:
+  - "Summarize the following document excerpt in 2-3 sentences:\n\n{{document_text}}"
+  - "Extract the key entities (people, organizations, dates) from this text:\n\n{{document_text}}"
+
+tests: "file://datasets/provider-comparison-seed.json"
+
+defaultTest:
+  assert:
+    - type: llm-rubric
+      value: "The response is relevant to the input text and factually grounded."
+    - type: cost
+      threshold: 0.01
+    - type: latency
+      threshold: 10000
+
+outputPath: "./results/provider-comparison-results.json"

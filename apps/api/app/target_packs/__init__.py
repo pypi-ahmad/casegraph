@@ -1,0 +1,1 @@
+"""Target-pack foundation: versioned target metadata and case selection."""

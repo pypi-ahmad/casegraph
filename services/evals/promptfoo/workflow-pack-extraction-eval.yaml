@@ -1,0 +1,44 @@
+# Promptfoo — Workflow Pack Extraction Eval
+#
+# Evaluates provider-backed extraction subtasks that support the
+# workflow pack pipeline.  Uses document excerpt inputs to test
+# structured extraction via different provider models.
+#
+# This is a seed config.  Results depend on live provider API keys.
+# Do not treat results as production benchmark quality.
+#
+# Usage:
+#   cd services/evals
+#   promptfoo eval -c promptfoo/workflow-pack-extraction-eval.yaml
+#
+# Requires: OPENAI_API_KEY and/or ANTHROPIC_API_KEY
+
+description: "CaseGraph — Workflow Pack Extraction Subtask Eval"
+
+providers:
+  - id: openai:chat:gpt-4o-mini
+    label: "OpenAI GPT-4o-mini"
+  - id: anthropic:messages:claude-3-5-haiku-latest
+    label: "Anthropic Claude 3.5 Haiku"
+
+prompts:
+  - |
+    Extract the following fields as JSON from the document excerpt below.
+    Return only valid JSON with the requested field names.
+
+    Fields to extract: {{fields}}
+
+    Document excerpt:
+    {{document_text}}
+
+tests: "file://datasets/workflow-pack-extraction-seed.json"
+
+defaultTest:
+  assert:
+    - type: is-json
+    - type: latency
+      threshold: 15000
+    - type: cost
+      threshold: 0.02
+
+outputPath: "./results/workflow-pack-extraction-results.json"
