@@ -1,0 +1,42 @@
+# Promptfoo — Retrieval / RAG Evaluation
+#
+# Evaluates retrieval quality at a foundation level.
+# Uses a local HTTP target that calls the CaseGraph knowledge search API.
+#
+# This is a scaffold config. Replace seed data with real
+# indexed documents and expected answers when RAG generation is added.
+#
+# Usage:
+#   cd services/evals
+#   promptfoo eval -c promptfoo/retrieval-eval.yaml
+#
+# Requires: CaseGraph API running with indexed documents
+
+description: "CaseGraph — Retrieval Quality Foundation"
+
+providers:
+  - id: http
+    label: "CaseGraph Knowledge Search"
+    config:
+      url: "{{env.CASEGRAPH_API_URL}}/knowledge/search"
+      method: POST
+      headers:
+        Content-Type: "application/json"
+      body:
+        query: "{{query}}"
+        top_k: 5
+      transformResponse: "json.items[0].text || 'no results'"
+
+prompts:
+  - "{{query}}"
+
+tests: "file://datasets/retrieval-eval-seed.json"
+
+defaultTest:
+  assert:
+    - type: javascript
+      value: "output !== 'no results'"
+    - type: latency
+      threshold: 5000
+
+outputPath: "./results/retrieval-eval-results.json"

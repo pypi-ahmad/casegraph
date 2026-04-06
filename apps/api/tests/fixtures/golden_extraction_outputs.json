@@ -1,0 +1,116 @@
+{
+  "readable_pdf": {
+    "document_id": "fixture-readable-001",
+    "source_file": {
+      "filename": "contract.pdf",
+      "content_type": "application/pdf",
+      "extension": ".pdf",
+      "size_bytes": 8192,
+      "sha256": "aabbccdd",
+      "classification": "pdf"
+    },
+    "requested_mode": "auto",
+    "resolved_mode": "readable_pdf",
+    "status": "completed",
+    "extractor_name": "pymupdf-readable-pdf",
+    "extracted_text": "First block. Second block.",
+    "pages": [
+      {
+        "page_number": 1,
+        "width": 612.0,
+        "height": 792.0,
+        "coordinate_space": "pdf_points",
+        "text": "First block. Second block.",
+        "text_blocks": [
+          {
+            "block_id": "page-0-block-0",
+            "page_number": 1,
+            "text": "First block.",
+            "bbox": {
+              "x0": 72.0,
+              "y0": 72.0,
+              "x1": 540.0,
+              "y1": 100.0,
+              "coordinate_space": "pdf_points"
+            },
+            "polygon": null,
+            "confidence": null,
+            "geometry_source": "pdf_text"
+          },
+          {
+            "block_id": "page-0-block-1",
+            "page_number": 1,
+            "text": "Second block.",
+            "bbox": {
+              "x0": 72.0,
+              "y0": 110.0,
+              "x1": 540.0,
+              "y1": 138.0,
+              "coordinate_space": "pdf_points"
+            },
+            "polygon": null,
+            "confidence": null,
+            "geometry_source": "pdf_text"
+          }
+        ],
+        "geometry_source": "pdf_text"
+      }
+    ]
+  },
+  "ocr_image": {
+    "document_id": "fixture-ocr-001",
+    "source_file": {
+      "filename": "scan.png",
+      "content_type": "image/png",
+      "extension": ".png",
+      "size_bytes": 50000,
+      "sha256": "eeff0011",
+      "classification": "image"
+    },
+    "requested_mode": "image",
+    "resolved_mode": "image",
+    "status": "completed",
+    "extractor_name": "rapidocr-image",
+    "extracted_text": "OCR line one.",
+    "pages": [
+      {
+        "page_number": 1,
+        "width": 1200.0,
+        "height": 1600.0,
+        "coordinate_space": "pixels",
+        "text": "OCR line one.",
+        "text_blocks": [
+          {
+            "block_id": "page-0-block-0",
+            "page_number": 1,
+            "text": "OCR line one.",
+            "bbox": {
+              "x0": 10.0,
+              "y0": 20.0,
+              "x1": 400.0,
+              "y1": 50.0,
+              "coordinate_space": "pixels"
+            },
+            "polygon": {
+              "points": [
+                {"x": 10.0, "y": 20.0},
+                {"x": 400.0, "y": 20.0},
+                {"x": 400.0, "y": 50.0},
+                {"x": 10.0, "y": 50.0}
+              ],
+              "coordinate_space": "pixels"
+            },
+            "confidence": 0.95,
+            "geometry_source": "ocr"
+          }
+        ],
+        "geometry_source": "ocr"
+      }
+    ]
+  },
+  "_meta": {
+    "description": "Golden extraction output fixtures. If the SDK schema changes, update these fixtures and the golden tests will catch the drift.",
+    "schema_version": "1.0",
+    "source": "casegraph_agent_sdk.ingestion.NormalizedExtractionOutput"
+  }
+}

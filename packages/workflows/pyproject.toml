@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "casegraph-workflows"
+version = "0.1.0"
+description = "Workflow registry and definitions for CaseGraph"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.11.0",
+]
+
+[tool.setuptools]
+packages = ["casegraph_workflows"]

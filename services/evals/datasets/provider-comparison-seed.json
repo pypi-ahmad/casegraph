@@ -1,0 +1,12 @@
+[
+  {
+    "vars": {
+      "document_text": "The CaseGraph platform enables local-first document processing with BYOK provider support. It includes agent orchestration, knowledge retrieval via vector search, and workflow definitions for multi-step processing pipelines."
+    }
+  },
+  {
+    "vars": {
+      "document_text": "On March 15, 2026, Acme Insurance Corp. filed a regulatory update with the National Association of Insurance Commissioners (NAIC). The update was reviewed by compliance officer Jane Smith and approved by the board of directors."
+    }
+  }
+]

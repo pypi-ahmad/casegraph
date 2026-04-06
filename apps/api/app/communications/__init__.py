@@ -1,0 +1,1 @@
+"""Communication draft foundation for reviewable, case-scoped draft records."""
