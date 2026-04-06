@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate (9 gates)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── JS/TS ────────────────────────────────────────────────────
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      # ── Python ───────────────────────────────────────────────────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Create Python venv
+        run: python -m venv .venv
+
+      - name: Install Python deps
+        run: |
+          .venv/bin/pip install --quiet --upgrade pip
+          .venv/bin/pip install --quiet \
+            -e "packages/agent-sdk" \
+            -e "packages/workflows" \
+            -e "apps/api[dev,observability]" \
+            -e "apps/agent-runtime[dev]"
+
+      # ── 9-gate validation ────────────────────────────────────────
+      - name: Run validate
+        run: pnpm validate:sh
