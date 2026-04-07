@@ -339,7 +339,7 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
             onClick={() => handleGenerate(false)}
             disabled={actionLoading}
           >
-            {actionLoading ? "Generating…" : "Generate Checklist"}
+            {actionLoading ? "Checking…" : "Check Requirements"}
           </button>
         ) : (
           <>
@@ -355,7 +355,7 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
               onClick={handleEvaluate}
               disabled={actionLoading}
             >
-              {actionLoading ? "Evaluating…" : "Evaluate Coverage"}
+              {actionLoading ? "Updating…" : "Update Status"}
             </button>
           </>
         )}
@@ -382,10 +382,8 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
           )}
 
           <p style={{ fontSize: 12, color: "#999", marginTop: 20 }}>
-            This checklist is derived from the domain pack case type template.
-            Coverage evaluation links case documents and extractions to requirement
-            items using coarse category matching. It does not perform deep semantic
-            verification or claim regulatory compliance.
+            Your document requirements and current completion status.
+            Coverage is estimated based on document categories and may not reflect all requirements.
           </p>
         </>
       ) : (

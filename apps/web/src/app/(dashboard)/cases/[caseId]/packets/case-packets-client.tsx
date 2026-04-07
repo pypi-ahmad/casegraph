@@ -60,7 +60,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load packets.");
+      setError(err instanceof Error ? err.message : "Unable to load exports. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
       }
       await load();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to generate packet.");
+      setMessage(err instanceof Error ? err.message : "Unable to create export. Please try again.");
     } finally {
       setWorking(false);
     }
@@ -104,7 +104,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
       setSelectedManifest(detail.manifest);
       setSelectedArtifacts(arts.artifacts);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to load packet detail.");
+      setMessage(err instanceof Error ? err.message : "Unable to load export details. Please try again.");
     } finally {
       setWorking(false);
     }
@@ -127,11 +127,9 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Case Packets</p>
-            <h1 style={titleStyle}>Packet Assembly &amp; Export</h1>
+            <h1 style={titleStyle}>Case Export</h1>
             <p style={subtitleStyle}>
-              Generate reviewable packets from either live case state or an explicitly signed-off reviewed snapshot.
-              Packets include linked documents, extraction results, readiness summary,
-              action items, review notes, run history, and snapshot provenance when selected.
+              Generate a complete export package for this case. Includes documents, extraction results, readiness summary, and review history.
             </p>
           </div>
         </header>
@@ -179,7 +177,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
               />
             </label>
             <button type="submit" style={primaryButtonStyle} disabled={working}>
-              {working ? "Working..." : "Generate Packet"}
+              {working ? "Working..." : "Create Export"}
             </button>
           </form>
           {sourceMode === "reviewed_snapshot" && handoffEligibility && (
@@ -205,7 +203,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
             <section style={sectionCardStyle}>
               <h2 style={sectionTitleStyle}>Generated Packets</h2>
               {packets.length === 0 ? (
-                <div style={subtlePanelStyle}>No packets have been generated for this case yet.</div>
+                <div style={subtlePanelStyle}>No exports yet. Use the form above to create an export package from this case.</div>
               ) : (
                 <div style={stackStyle}>
                   {packets.map((p) => (

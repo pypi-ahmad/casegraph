@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "CaseGraph",
-  description: "Local-first BYOK multi-agent platform",
+  description: "Case processing workspace with human oversight",
 };
 
 export default function RootLayout({

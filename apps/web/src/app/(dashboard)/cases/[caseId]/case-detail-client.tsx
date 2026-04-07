@@ -89,7 +89,7 @@ export default function CaseDetailClient({
         caseDetail.case.workflow_binding?.workflow_id ?? workflowResponse.workflows[0]?.id ?? "",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load case workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load case workspace. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -204,23 +204,37 @@ export default function CaseDetailClient({
             <h1 style={titleStyle}>{detail.case.title}</h1>
             <p style={subtitleStyle}>
               Persistent case metadata, linked documents, selected workflow, and tracked run records.
-              {detail.case.domain_context && (
-                <>{" "}<Link href={`/cases/${caseId}/checklist`} style={{ color: "#0d6efd" }}>View requirement checklist →</Link></>
-              )}
-              {detail.case.domain_context && (
-                <> {" "}<Link href={`/cases/${caseId}/workflow-packs`} style={{ color: "#0d6efd" }}>Workflow pack review →</Link></>
-              )}
-              <> {" "}<Link href={`/cases/${caseId}/validation`} style={{ color: "#0d6efd" }}>Validation workspace →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/handoff`} style={{ color: "#0d6efd" }}>Reviewed handoff →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/releases`} style={{ color: "#0d6efd" }}>Release bundles →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/audit`} style={{ color: "#0d6efd" }}>Audit timeline →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/review`} style={{ color: "#0d6efd" }}>Open operator review →</Link></>
-              <> {" "}<Link href="/work" style={{ color: "#0d6efd" }}>Work board →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/packets`} style={{ color: "#0d6efd" }}>Packets &amp; export →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/communication-drafts`} style={{ color: "#0d6efd" }}>Communication drafts →</Link></>
-              <> {" "}<Link href={`/cases/${caseId}/submission-drafts`} style={{ color: "#0d6efd" }}>Submission drafts →</Link></>
-              <> {" "}<Link href="/target-packs" style={{ color: "#0d6efd" }}>Target packs →</Link></>
             </p>
+            <nav style={caseNavStyle}>
+              <div style={navGroupStyle}>
+                <span style={navGroupLabelStyle}>Review</span>
+                <Link href={`/cases/${caseId}/review`} style={navLinkStyle}>Operator Review</Link>
+                <Link href={`/cases/${caseId}/validation`} style={navLinkStyle}>Validation</Link>
+                {detail.case.domain_context && (
+                  <Link href={`/cases/${caseId}/checklist`} style={navLinkStyle}>Requirements</Link>
+                )}
+                {detail.case.domain_context && (
+                  <Link href={`/cases/${caseId}/workflow-packs`} style={navLinkStyle}>Workflow Pack</Link>
+                )}
+              </div>
+              <div style={navGroupStyle}>
+                <span style={navGroupLabelStyle}>Prepare</span>
+                <Link href={`/cases/${caseId}/packets`} style={navLinkStyle}>Export</Link>
+                <Link href={`/cases/${caseId}/communication-drafts`} style={navLinkStyle}>Communications</Link>
+                <Link href={`/cases/${caseId}/submission-drafts`} style={navLinkStyle}>Submissions</Link>
+                <Link href={`/cases/${caseId}/handoff`} style={navLinkStyle}>Handoff</Link>
+              </div>
+              <div style={navGroupStyle}>
+                <span style={navGroupLabelStyle}>Finalize</span>
+                <Link href={`/cases/${caseId}/releases`} style={navLinkStyle}>Releases</Link>
+                <Link href={`/cases/${caseId}/audit`} style={navLinkStyle}>Activity History</Link>
+              </div>
+              <div style={navGroupStyle}>
+                <span style={navGroupLabelStyle}>Navigate</span>
+                <Link href="/work" style={navLinkStyle}>Work Board</Link>
+                <Link href="/target-packs" style={navLinkStyle}>Target Packs</Link>
+              </div>
+            </nav>
           </div>
           <span style={statusBadgeStyle}>{detail.case.status.replace(/_/g, " ")}</span>
         </header>
@@ -264,7 +278,7 @@ export default function CaseDetailClient({
                   <option value="">No workflow selected</option>
                   {workflows.map((workflow) => (
                     <option key={workflow.id} value={workflow.id}>
-                      {workflow.display_name} ({workflow.id})
+                      {workflow.display_name}
                     </option>
                   ))}
                 </select>
@@ -473,7 +487,7 @@ export default function CaseDetailClient({
                   <option value="">Select a workflow</option>
                   {workflows.map((workflow) => (
                     <option key={workflow.id} value={workflow.id}>
-                      {workflow.display_name} ({workflow.id})
+                      {workflow.display_name}
                     </option>
                   ))}
                 </select>
@@ -503,7 +517,7 @@ export default function CaseDetailClient({
               </div>
               <div style={actionRowStyle}>
                 <button type="submit" style={primaryButtonStyle} disabled={submitting || !runWorkflowId}>
-                  Create Run Record
+                  Start Workflow
                 </button>
               </div>
             </form>
@@ -596,6 +610,39 @@ const subtitleStyle: CSSProperties = {
   maxWidth: "740px",
   color: "#55657a",
   lineHeight: 1.6,
+};
+
+const caseNavStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "1.5rem",
+  marginTop: "1rem",
+};
+
+const navGroupStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "0.35rem",
+};
+
+const navGroupLabelStyle: CSSProperties = {
+  fontSize: "0.72rem",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  color: "#64748b",
+  marginRight: "0.25rem",
+  letterSpacing: "0.03em",
+};
+
+const navLinkStyle: CSSProperties = {
+  fontSize: "0.82rem",
+  color: "#0d6efd",
+  textDecoration: "none",
+  padding: "0.2rem 0.55rem",
+  borderRadius: "6px",
+  backgroundColor: "#f0f4ff",
+  fontWeight: 500,
 };
 
 const backLinkStyle: CSSProperties = {

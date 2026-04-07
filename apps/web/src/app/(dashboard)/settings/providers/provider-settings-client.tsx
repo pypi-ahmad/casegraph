@@ -196,11 +196,10 @@ export default function ProviderSettingsClient() {
             Settings
           </p>
           <h1 style={{ margin: "0.5rem 0 0", fontSize: "2.2rem", color: "#102033" }}>
-            BYOK Providers
+            AI Provider Settings
           </h1>
           <p style={{ maxWidth: "760px", color: "#55657a", lineHeight: 1.6 }}>
-            Validate provider keys and discover live model availability through the local
-            FastAPI service. Keys remain in local component state only for this session.
+            Configure AI providers for your team. API keys are stored locally in your browser for this session only.
           </p>
         </header>
 

@@ -41,6 +41,7 @@ export default function DocumentIngestionClient() {
 
   const [documents, setDocuments] = useState<IngestionResultSummary[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [showCapabilities, setShowCapabilities] = useState(false);
 
   function loadDocuments() {
     setDocumentsLoading(true);
@@ -107,7 +108,7 @@ export default function DocumentIngestionClient() {
     } catch (error) {
       setResult(null);
       setSubmitError(
-        error instanceof Error ? error.message : "Unable to ingest document.",
+        error instanceof Error ? error.message : "Unable to process document. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -119,11 +120,9 @@ export default function DocumentIngestionClient() {
       <section style={containerStyle}>
         <header style={{ marginBottom: "2rem" }}>
           <p style={breadcrumbStyle}>Documents</p>
-          <h1 style={titleStyle}>Ingestion Inspector</h1>
+          <h1 style={titleStyle}>Documents</h1>
           <p style={subtitleStyle}>
-            Upload a local PDF or image, choose an explicit ingestion mode, and
-            inspect the normalized extraction summary. OCR is opt-in and not used
-            as a universal fallback.
+            Upload and review your documents.
           </p>
         </header>
 
@@ -175,7 +174,7 @@ export default function DocumentIngestionClient() {
 
             <div style={actionsStyle}>
               <button type="submit" disabled={submitting} style={buttonStyle}>
-                {submitting ? "Ingesting..." : "Run Ingestion"}
+                {submitting ? "Uploading…" : "Upload Document"}
               </button>
               <span style={helperTextStyle}>
                 OCR-enabled modes require the checkbox above. Auto mode only uses
@@ -188,13 +187,21 @@ export default function DocumentIngestionClient() {
         </section>
 
         <section style={{ ...panelStyle, marginTop: "1rem" }}>
-          <h2 style={sectionTitleStyle}>Current Capabilities</h2>
-          {capabilitiesLoading ? (
-            <div style={mutedPanelStyle}>Loading capabilities...</div>
-          ) : capabilitiesError ? (
-            <div style={errorPanelStyle}>{capabilitiesError}</div>
-          ) : capabilities ? (
+          <button
+            type="button"
+            onClick={() => setShowCapabilities((prev) => !prev)}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, width: "100%", textAlign: "left" }}
+          >
+            <h2 style={sectionTitleStyle}>{showCapabilities ? "Current Capabilities ▾" : "Current Capabilities ▸"}</h2>
+          </button>
+          {showCapabilities && (
             <>
+              {capabilitiesLoading ? (
+                <div style={mutedPanelStyle}>Loading capabilities...</div>
+              ) : capabilitiesError ? (
+                <div style={errorPanelStyle}>{capabilitiesError}</div>
+              ) : capabilities ? (
+                <>
               <div style={gridStyle}>
                 {capabilities.modes.map((capability) => (
                   <article key={capability.mode} style={cardStyle}>
@@ -237,6 +244,8 @@ export default function DocumentIngestionClient() {
               </ul>
             </>
           ) : null}
+            </>
+          )}
         </section>
 
         {result ? (

@@ -33,6 +33,18 @@ const DECISION_OPTIONS: ReviewDecision[] = [
   "close_placeholder",
 ];
 
+const DECISION_LABELS: Record<string, string> = {
+  note_only: "Note Only",
+  follow_up_required: "Follow-up Required",
+  ready_for_next_step: "Ready for Next Step",
+  hold: "Hold",
+  close_placeholder: "Close",
+};
+
+function displayLabel(value: string): string {
+  return DECISION_LABELS[value] ?? value.replace(/_/g, " ");
+}
+
 export default function CaseReviewClient({ caseId }: { caseId: string }) {
   const [detail, setDetail] = useState<CaseDetailResponse | null>(null);
   const [stage, setStage] = useState<CaseStageResponse | null>(null);
@@ -67,7 +79,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
       setHistory(historyResponse.transitions);
       setNextStage(stageResponse.stage.allowed_transitions[0] ?? "");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load case review workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load case review. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +126,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
       setTransitionNote("");
       setMessage(response.result.message || "Case stage updated.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to update case stage.");
+      setMessage(err instanceof Error ? err.message : "Unable to update case stage. Please try again.");
     } finally {
       setWorking(false);
     }
@@ -135,7 +147,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
       setDecision("note_only");
       setMessage(response.result.message || "Review note recorded.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to record review note.");
+      setMessage(err instanceof Error ? err.message : "Unable to record review note. Please try again.");
     } finally {
       setWorking(false);
     }
@@ -169,8 +181,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
             <p style={breadcrumbStyle}>Operator Review</p>
             <h1 style={titleStyle}>{detail.case.title}</h1>
             <p style={subtitleStyle}>
-              Human review workspace for explicit case stages, deterministic follow-up actions,
-              and manual notes.
+              Review this case, record decisions, and track follow-ups.
             </p>
           </div>
           <div style={headerStatusBoxStyle}>
@@ -186,14 +197,14 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
             <div style={sectionHeaderStyle}>
               <h2 style={sectionTitleStyle}>Follow-up Actions</h2>
               <button type="button" style={primaryButtonStyle} onClick={handleGenerateActions} disabled={working}>
-                {working ? "Working..." : "Generate Actions"}
+                {working ? "Working..." : "Find Next Steps"}
               </button>
             </div>
             <p style={helperTextStyle}>
               Generated from explicit case, checklist, extraction, and workflow state only.
             </p>
             {openActions.length === 0 ? (
-              <div style={subtlePanelStyle}>No open action items are currently stored for this case.</div>
+              <div style={subtlePanelStyle}>No action items yet. Click “Find Next Steps” above to generate recommended actions from case data.</div>
             ) : (
               <div style={stackStyle}>
                 {openActions.map((action) => (
@@ -207,7 +218,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
                     <div style={metaGridStyle}>
                       <span>Priority</span><span>{action.priority}</span>
                       <span>Source</span><span>{action.source.replace(/_/g, " ")}</span>
-                      <span>Status</span><span>{action.status}</span>
+                      <span>Status</span><span>{action.status.replace(/_/g, " ")}</span>
                       {action.checklist_item_id && <><span>Checklist item</span><span>{action.checklist_item_id}</span></>}
                       {action.document_id && <><span>Document</span><span>{action.document_id}</span></>}
                       {action.extraction_id && <><span>Extraction</span><span>{action.extraction_id}</span></>}
@@ -252,7 +263,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
                 <span style={labelStyle}>Decision</span>
                 <select value={decision} onChange={(event) => setDecision(event.target.value as ReviewDecision)} style={inputStyle}>
                   {DECISION_OPTIONS.map((item) => (
-                    <option key={item} value={item}>{item.replace(/_/g, " ")}</option>
+                    <option key={item} value={item}>{displayLabel(item)}</option>
                   ))}
                 </select>
               </label>

@@ -81,10 +81,9 @@ export default function AuditClient({ caseId }: { caseId: string }) {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Case Audit</p>
-            <h1 style={titleStyle}>Audit Timeline &amp; Lineage</h1>
+            <h1 style={titleStyle}>Activity History</h1>
             <p style={subtitleStyle}>
-              Persisted operational history for selected case events, decisions, and derived artifact lineage.
-              This is an append-oriented local traceability workspace, not a formal compliance archive.
+              Complete record of actions and decisions for this case.
             </p>
           </div>
           <div style={summaryCardStyle}>

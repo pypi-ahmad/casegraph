@@ -26,7 +26,7 @@ export default function CasesClient() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load cases.");
+          setError(err instanceof Error ? err.message : "Unable to load cases. Try refreshing the page.");
         }
       } finally {
         if (!cancelled) {
@@ -47,9 +47,9 @@ export default function CasesClient() {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Cases</p>
-            <h1 style={titleStyle}>Case Workspace</h1>
+            <h1 style={titleStyle}>Cases</h1>
             <p style={subtitleStyle}>
-              Persistent case records, workflow selection, linked documents, and tracked run metadata.
+              All your open cases and their current status.
             </p>
           </div>
           <Link href="/cases/new" style={primaryLinkStyle}>
@@ -62,7 +62,7 @@ export default function CasesClient() {
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : cases.length === 0 ? (
-          <div style={panelStyle}>No cases created yet.</div>
+          <div style={panelStyle}>No cases created yet. Use the “New Case” button above to open your first case.</div>
         ) : (
           <div style={gridStyle}>
             {cases.map((item) => (

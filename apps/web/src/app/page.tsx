@@ -27,13 +27,11 @@ export default function Home() {
           CaseGraph
         </h1>
         <p style={{ color: "#4f5f75", marginTop: "0.75rem", marginBottom: "1rem" }}>
-          Local-first BYOK multi-agent platform.
+          Your case processing workspace.
         </p>
         <p style={{ color: "#5f6f84", lineHeight: 1.6, marginTop: 0 }}>
-          The current foundation supports provider discovery for OpenAI, Anthropic, and
-          Gemini, an agent runtime with registered agents and workflow definitions,
-          document ingestion for readable PDFs and OCR-routed files, and a knowledge
-          retrieval foundation with local vector search. Sign in to access internal tools.
+          Process cases, review documents, validate extracted information, and prepare
+          submissions — with full human oversight at every step. Sign in to continue.
         </p>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "1rem" }}>
           <Link
@@ -53,7 +51,7 @@ export default function Home() {
             Sign in
           </Link>
           <Link
-            href="/settings/providers"
+            href="/cases"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -67,24 +65,7 @@ export default function Home() {
               fontWeight: 600,
             }}
           >
-            BYOK Settings
-          </Link>
-          <Link
-            href="/runtime"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0.8rem 1.1rem",
-              borderRadius: "999px",
-              border: "1px solid #c7d2e0",
-              backgroundColor: "#ffffff",
-              color: "#102033",
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
-          >
-            Agents &amp; Workflows
+            Cases
           </Link>
           <Link
             href="/documents"
@@ -102,23 +83,6 @@ export default function Home() {
             }}
           >
             Documents
-          </Link>
-          <Link
-            href="/knowledge"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0.8rem 1.1rem",
-              borderRadius: "999px",
-              border: "1px solid #c7d2e0",
-              backgroundColor: "#eef4fb",
-              color: "#102033",
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
-          >
-            Knowledge
           </Link>
         </div>
       </section>

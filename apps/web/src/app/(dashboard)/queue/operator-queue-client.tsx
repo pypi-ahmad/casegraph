@@ -6,12 +6,15 @@ import type { CSSProperties } from "react";
 
 import type {
   CaseStage,
+  DomainPackMetadata,
+  CaseTypeTemplateMetadata,
   QueueFilterMetadata,
   QueueSummaryResponse,
   ReviewQueueItem,
   ReviewQueueResponse,
 } from "@casegraph/agent-sdk";
 
+import { fetchDomainPacks, fetchDomainPackDetail } from "@/lib/domains-api";
 import {
   fetchOperatorQueue,
   fetchOperatorQueueSummary,
@@ -37,6 +40,8 @@ export default function OperatorQueueClient() {
   const [hasOpenActions, setHasOpenActions] = useState(false);
   const [domainPackId, setDomainPackId] = useState("");
   const [caseTypeId, setCaseTypeId] = useState("");
+  const [domainPacks, setDomainPacks] = useState<DomainPackMetadata[]>([]);
+  const [caseTypes, setCaseTypes] = useState<CaseTypeTemplateMetadata[]>([]);
 
   const filters = useMemo<Partial<QueueFilterMetadata>>(
     () => ({
@@ -49,6 +54,19 @@ export default function OperatorQueueClient() {
     }),
     [caseTypeId, domainPackId, hasMissingItems, hasOpenActions, stage],
   );
+
+  useEffect(() => {
+    fetchDomainPacks()
+      .then((res) => setDomainPacks(res.packs))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!domainPackId) { setCaseTypes([]); return; }
+    fetchDomainPackDetail(domainPackId)
+      .then((res) => setCaseTypes(res.pack.case_types))
+      .catch(() => setCaseTypes([]));
+  }, [domainPackId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +85,7 @@ export default function OperatorQueueClient() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load operator queue.");
+          setError(err instanceof Error ? err.message : "Unable to load review queue. Try refreshing the page.");
         }
       } finally {
         if (!cancelled) {
@@ -88,10 +106,9 @@ export default function OperatorQueueClient() {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Operator Queue</p>
-            <h1 style={titleStyle}>Review Work Queue</h1>
+            <h1 style={titleStyle}>Review Queue</h1>
             <p style={subtitleStyle}>
-              Cases that currently need deterministic operator attention based on
-              explicit case, checklist, extraction, and run state.
+              Cases that need your attention right now.
             </p>
           </div>
           <Link href="/cases" style={secondaryLinkStyle}>
@@ -112,11 +129,21 @@ export default function OperatorQueueClient() {
           </label>
           <label style={fieldStyle}>
             <span style={labelStyle}>Domain Pack</span>
-            <input value={domainPackId} onChange={(event) => setDomainPackId(event.target.value)} style={inputStyle} placeholder="medical_us" />
+            <select value={domainPackId} onChange={(event) => { setDomainPackId(event.target.value); setCaseTypeId(""); }} style={inputStyle}>
+              <option value="">All domain packs</option>
+              {domainPacks.map((pack) => (
+                <option key={pack.pack_id} value={pack.pack_id}>{pack.display_name}</option>
+              ))}
+            </select>
           </label>
           <label style={fieldStyle}>
             <span style={labelStyle}>Case Type</span>
-            <input value={caseTypeId} onChange={(event) => setCaseTypeId(event.target.value)} style={inputStyle} placeholder="medical_us:record_review" />
+            <select value={caseTypeId} onChange={(event) => setCaseTypeId(event.target.value)} style={inputStyle} disabled={!domainPackId}>
+              <option value="">All case types</option>
+              {caseTypes.map((ct) => (
+                <option key={ct.case_type_id} value={ct.case_type_id}>{ct.display_name}</option>
+              ))}
+            </select>
           </label>
           <label style={checkboxStyle}>
             <input type="checkbox" checked={hasMissingItems} onChange={(event) => setHasMissingItems(event.target.checked)} />
@@ -154,7 +181,7 @@ export default function OperatorQueueClient() {
             )}
 
             {queue && queue.items.length === 0 ? (
-              <div style={panelStyle}>No cases currently match the review queue criteria.</div>
+              <div style={panelStyle}>No cases need review right now. Try adjusting your filters or check back later.</div>
             ) : (
               <div style={queueGridStyle}>
                 {queue?.items.map((item) => (

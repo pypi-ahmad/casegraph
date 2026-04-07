@@ -39,6 +39,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
   const [slaPolicyId, setSlaPolicyId] = useState("");
   const [slaWindowHours, setSlaWindowHours] = useState("24");
   const [slaNote, setSlaNote] = useState("");
+  const [showSlaAdvanced, setShowSlaAdvanced] = useState(false);
 
   async function loadWorkData(showLoading = true) {
     if (showLoading) {
@@ -183,9 +184,9 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
     <section style={sectionCardStyle}>
       <div style={sectionHeaderStyle}>
         <div>
-          <h2 style={sectionTitleStyle}>Case Work Management</h2>
+          <h2 style={sectionTitleStyle}>Ownership & Deadlines</h2>
           <p style={sectionSubtitleStyle}>
-            Explicit ownership, assignment history, deadline tracking, and descriptive escalation readiness for this case.
+            Who owns this case and when it's due.
           </p>
         </div>
         <span style={actorBadgeStyle}>Acting as {currentUser.name || currentUser.email}</span>
@@ -224,7 +225,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
                       <option value="">Select local operator</option>
                       {workStatus.available_assignees.map((assignee) => (
                         <option key={assignee.user_id} value={assignee.user_id}>
-                          {assignee.display_name} ({assignee.user_id})
+                          {assignee.display_name}
                         </option>
                       ))}
                     </select>
@@ -272,25 +273,36 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
                       style={inputStyle}
                     />
                   </label>
-                  <label style={fieldStyle}>
-                    <span style={labelStyle}>Policy identifier</span>
-                    <input
-                      value={slaPolicyId}
-                      onChange={(event) => setSlaPolicyId(event.target.value)}
-                      style={inputStyle}
-                      placeholder="local-default"
-                    />
-                  </label>
-                  <label style={fieldStyle}>
-                    <span style={labelStyle}>Due-soon window (hours)</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={slaWindowHours}
-                      onChange={(event) => setSlaWindowHours(event.target.value)}
-                      style={inputStyle}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSlaAdvanced((prev) => !prev)}
+                    style={{ background: "none", border: "none", color: "#0d6efd", cursor: "pointer", fontSize: "0.82rem", padding: "0.25rem 0", textAlign: "left" }}
+                  >
+                    {showSlaAdvanced ? "Hide advanced options ▾" : "Advanced options ▸"}
+                  </button>
+                  {showSlaAdvanced && (
+                    <>
+                      <label style={fieldStyle}>
+                        <span style={labelStyle}>Policy identifier</span>
+                        <input
+                          value={slaPolicyId}
+                          onChange={(event) => setSlaPolicyId(event.target.value)}
+                          style={inputStyle}
+                          placeholder="local-default"
+                        />
+                      </label>
+                      <label style={fieldStyle}>
+                        <span style={labelStyle}>Due-soon window (hours)</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={slaWindowHours}
+                          onChange={(event) => setSlaWindowHours(event.target.value)}
+                          style={inputStyle}
+                        />
+                      </label>
+                    </>
+                  )}
                   <label style={fieldStyle}>
                     <span style={labelStyle}>Deadline note</span>
                     <input

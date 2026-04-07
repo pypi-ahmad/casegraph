@@ -7,6 +7,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type {
   ApprovalStatus,
   AutomationPlan,
+  SessionUser,
   SubmissionDraftDetailResponse,
   SubmissionDraftSummary,
   SubmissionMappingFieldDefinition,
@@ -27,7 +28,18 @@ import {
 
 type ApprovalChoice = ApprovalStatus;
 
-export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
+const APPROVAL_LABELS: Record<string, string> = {
+  not_requested: "Not Requested",
+  awaiting_operator_review: "Awaiting Review",
+  approved_for_future_execution: "Approved",
+  rejected: "Rejected",
+};
+
+function approvalLabel(status: string): string {
+  return APPROVAL_LABELS[status] ?? status.replace(/_/g, " ");
+}
+
+export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
   const [caseTitle, setCaseTitle] = useState("");
   const [packets, setPackets] = useState<PacketSummary[]>([]);
   const [targets, setTargets] = useState<SubmissionTargetMetadata[]>([]);
@@ -37,7 +49,7 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
   const [selectedTargetId, setSelectedTargetId] = useState("portal_submission");
   const [draftNote, setDraftNote] = useState("");
   const [approvalStatus, setApprovalStatus] = useState<ApprovalChoice>("awaiting_operator_review");
-  const [approvedBy, setApprovedBy] = useState("");
+  const [approvedBy, setApprovedBy] = useState(currentUser.id);
   const [approvalNote, setApprovalNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -75,7 +87,7 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
         setSelectedDraft(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load submission drafts workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load submission drafts. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -187,10 +199,9 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Submission Drafts</p>
-            <h1 style={titleStyle}>{caseTitle || "Submission Draft Workspace"}</h1>
+            <h1 style={titleStyle}>{caseTitle || "Submission Preparation"}</h1>
             <p style={subtitleStyle}>
-              Approval-gated submission drafting and dry-run automation planning from explicit case,
-              packet, extraction, and automation capability metadata. No live submission is executed here.
+              Prepare and review submissions for this case. All submissions require your approval before processing.
             </p>
           </div>
         </header>
@@ -266,7 +277,7 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
             <section style={sectionCardStyle}>
               <h2 style={sectionTitleStyle}>Submission Drafts</h2>
               {drafts.length === 0 ? (
-                <div style={subtlePanelStyle}>No submission drafts have been created for this case yet.</div>
+                <div style={subtlePanelStyle}>No submission drafts yet. Select a target and packet above to create one.</div>
               ) : (
                 <div style={stackStyle}>
                   {drafts.map((draft) => (
@@ -290,7 +301,7 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
                         <span>Packet</span><span style={monoStyle}>{draft.packet_id.slice(0, 12)}…</span>
                         <span>Source mode</span><span>{describeSourceMode(draft.source_mode)}</span>
                         <span>Reviewed snapshot</span><span style={monoStyle}>{draft.source_reviewed_snapshot_id ? `${draft.source_reviewed_snapshot_id.slice(0, 12)}…` : "None"}</span>
-                        <span>Approval</span><span>{draft.approval_status.replace(/_/g, " ")}</span>
+                        <span>Approval</span><span>{approvalLabel(draft.approval_status)}</span>
                         <span>Mappings</span><span>{draft.mapping_count}</span>
                         <span>Needs review</span><span>{draft.unresolved_mapping_count}</span>
                         <span>Updated</span><span>{formatTimestamp(draft.updated_at)}</span>
@@ -308,20 +319,20 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
                   <div style={sectionHeaderStyle}>
                     <h2 style={sectionTitleStyle}>Draft Overview</h2>
                     <button type="button" style={primaryButtonStyle} onClick={handleGeneratePlan} disabled={working}>
-                      {selectedDraft.plan ? "Regenerate Dry-Run Plan" : "Generate Dry-Run Plan"}
+                      {selectedDraft.plan ? "Refresh Automation Preview" : "Preview Automation Steps"}
                     </button>
                   </div>
                   <div style={metaGridStyle}>
                     <span>Target</span><span>{selectedDraft.target.display_name}</span>
                     <span>Draft status</span><span>{selectedDraft.draft.status.replace(/_/g, " ")}</span>
-                    <span>Approval</span><span>{selectedDraft.approval.approval_status.replace(/_/g, " ")}</span>
+                    <span>Approval</span><span>{approvalLabel(selectedDraft.approval.approval_status)}</span>
                     <span>Packet</span><span style={monoStyle}>{selectedDraft.draft.packet_id.slice(0, 12)}…</span>
                     <span>Source mode</span><span>{describeSourceMode(selectedDraft.source_metadata.source_mode)}</span>
                     <span>Reviewed snapshot</span><span style={monoStyle}>{selectedDraft.source_metadata.source_reviewed_snapshot_id || "None"}</span>
                     <span>Snapshot sign-off</span><span>{selectedDraft.source_metadata.source_snapshot_signoff_status.replace(/_/g, " ")}</span>
                     <span>Domain pack</span><span>{selectedDraft.source_metadata.domain_pack_id ?? "None"}</span>
                     <span>Case type</span><span>{selectedDraft.source_metadata.case_type_id ?? "None"}</span>
-                    <span>Readiness</span><span>{selectedDraft.source_metadata.readiness_status ?? "Not evaluated"}</span>
+                    <span>Readiness</span><span>{selectedDraft.source_metadata.readiness_status?.replace(/_/g, " ") ?? "Not evaluated"}</span>
                     <span>Documents</span><span>{selectedDraft.source_metadata.linked_document_count}</span>
                     <span>Extractions</span><span>{selectedDraft.source_metadata.extraction_count}</span>
                     <span>Candidate sources</span><span>{selectedDraft.source_metadata.candidate_source_count}</span>
@@ -352,9 +363,9 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
                         onChange={(event) => setApprovalStatus(event.target.value as ApprovalChoice)}
                         style={inputStyle}
                       >
-                        <option value="not_requested">Not requested</option>
-                        <option value="awaiting_operator_review">Awaiting operator review</option>
-                        <option value="approved_for_future_execution">Approved for future execution</option>
+                        <option value="not_requested">Not Requested</option>
+                        <option value="awaiting_operator_review">Awaiting Review</option>
+                        <option value="approved_for_future_execution">Approved</option>
                         <option value="rejected">Rejected</option>
                       </select>
                     </label>
@@ -377,7 +388,7 @@ export default function SubmissionDraftsClient({ caseId }: { caseId: string }) {
                       />
                     </label>
                     <button type="submit" style={primaryButtonStyle} disabled={working}>
-                      {working ? "Working..." : "Record Approval Metadata"}
+                      {working ? "Working..." : "Save Approval"}
                     </button>
                   </form>
                 </section>

@@ -19,7 +19,7 @@ export default function SignInForm({
     await signIn("credentials", {
       email,
       password,
-      callbackUrl: callbackUrl || "/settings/providers",
+      callbackUrl: callbackUrl || "/cases",
     });
     // signIn redirects on success; on failure it redirects back with ?error
     setLoading(false);

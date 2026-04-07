@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { useState } from "react";
 import type { CSSProperties } from "react";
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export default function DashboardHeader({ user }: Props) {
+  const [showAdmin, setShowAdmin] = useState(false);
+
   return (
     <header style={headerStyle}>
       <nav style={navStyle}>
@@ -17,9 +20,6 @@ export default function DashboardHeader({ user }: Props) {
         </Link>
 
         <div style={linksStyle}>
-          <Link href="/settings/providers" style={linkStyle}>
-            Providers
-          </Link>
           <Link href="/cases" style={linkStyle}>
             Cases
           </Link>
@@ -29,39 +29,54 @@ export default function DashboardHeader({ user }: Props) {
           <Link href="/queue" style={linkStyle}>
             Queue
           </Link>
-          <Link href="/runtime" style={linkStyle}>
-            Runtime <span style={scaffoldedTagStyle}>scaffolded</span>
-          </Link>
           <Link href="/documents" style={linkStyle}>
             Documents
           </Link>
-          <Link href="/knowledge" style={linkStyle}>
-            Knowledge
-          </Link>
-          <Link href="/topology" style={linkStyle}>
-            Topology <span style={scaffoldedTagStyle}>scaffolded</span>
-          </Link>
-          <Link href="/evals" style={linkStyle}>
-            Evals
-          </Link>
-          <Link href="/automation" style={linkStyle}>
-            Automation <span style={scaffoldedTagStyle}>scaffolded</span>
-          </Link>
-          <Link href="/tasks" style={linkStyle}>
-            Tasks
-          </Link>
-          <Link href="/rag" style={linkStyle}>
-            RAG
-          </Link>
-          <Link href="/extraction" style={linkStyle}>
-            Extraction
-          </Link>
-          <Link href="/domain-packs" style={linkStyle}>
-            Domain Packs
-          </Link>
-          <Link href="/target-packs" style={linkStyle}>
-            Target Packs
-          </Link>
+          <span style={adminDividerStyle}>|</span>
+          <button
+            type="button"
+            onClick={() => setShowAdmin(!showAdmin)}
+            style={adminToggleStyle}
+          >
+            {showAdmin ? "Admin ▾" : "Admin ▸"}
+          </button>
+          {showAdmin && (
+            <>
+              <Link href="/settings/providers" style={adminLinkStyle}>
+                Providers
+              </Link>
+              <Link href="/knowledge" style={adminLinkStyle}>
+                Knowledge
+              </Link>
+              <Link href="/extraction" style={adminLinkStyle}>
+                Extraction
+              </Link>
+              <Link href="/tasks" style={adminLinkStyle}>
+                Tasks
+              </Link>
+              <Link href="/rag" style={adminLinkStyle}>
+                RAG
+              </Link>
+              <Link href="/evals" style={adminLinkStyle}>
+                Evals
+              </Link>
+              <Link href="/runtime" style={adminLinkStyle}>
+                Runtime
+              </Link>
+              <Link href="/topology" style={adminLinkStyle}>
+                Topology
+              </Link>
+              <Link href="/automation" style={adminLinkStyle}>
+                Automation
+              </Link>
+              <Link href="/domain-packs" style={adminLinkStyle}>
+                Domain Packs
+              </Link>
+              <Link href="/target-packs" style={adminLinkStyle}>
+                Target Packs
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -140,14 +155,25 @@ const signOutStyle: CSSProperties = {
   fontWeight: 500,
 };
 
-const scaffoldedTagStyle: CSSProperties = {
-  display: "inline-block",
-  padding: "0.05rem 0.3rem",
-  borderRadius: "3px",
-  backgroundColor: "#fef3c7",
-  color: "#92400e",
-  fontSize: "0.6rem",
-  fontWeight: 600,
-  verticalAlign: "super",
-  lineHeight: 1,
+const adminDividerStyle: CSSProperties = {
+  color: "#cbd5e1",
+  fontSize: "0.85rem",
+  userSelect: "none",
+};
+
+const adminToggleStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#64748b",
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  fontWeight: 500,
+  padding: 0,
+};
+
+const adminLinkStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#64748b",
+  textDecoration: "none",
+  fontWeight: 500,
 };

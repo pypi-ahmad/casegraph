@@ -106,7 +106,7 @@ export default function NewCaseClient() {
           <p style={breadcrumbStyle}>Cases</p>
           <h1 style={titleStyle}>Create Case</h1>
           <p style={subtitleStyle}>
-            Create a persistent case record and optionally bind an available workflow.
+            Open a new case and optionally select a processing workflow.
           </p>
         </header>
 
@@ -170,7 +170,7 @@ export default function NewCaseClient() {
                 <option value="">No workflow selected</option>
                 {workflows.map((workflow) => (
                   <option key={workflow.id} value={workflow.id}>
-                    {workflow.display_name} ({workflow.id})
+                    {workflow.display_name}
                   </option>
                 ))}
               </select>

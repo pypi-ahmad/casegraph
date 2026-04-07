@@ -7,6 +7,7 @@ import type { CSSProperties, FormEvent } from "react";
 import type {
   HandoffEligibilitySummary,
   ReviewedSnapshotRecord,
+  SessionUser,
   WorkStatusSummary,
 } from "@casegraph/agent-sdk";
 
@@ -21,14 +22,14 @@ import {
 } from "@/lib/reviewed-handoff-api";
 import { fetchCaseWorkStatus } from "@/lib/work-management-api";
 
-export default function HandoffClient({ caseId }: { caseId: string }) {
+export default function HandoffClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
   const [caseTitle, setCaseTitle] = useState("");
   const [snapshots, setSnapshots] = useState<ReviewedSnapshotRecord[]>([]);
   const [eligibility, setEligibility] = useState<HandoffEligibilitySummary | null>(null);
   const [workStatus, setWorkStatus] = useState<WorkStatusSummary | null>(null);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
-  const [operatorId, setOperatorId] = useState("");
-  const [operatorDisplayName, setOperatorDisplayName] = useState("");
+  const [operatorId, setOperatorId] = useState(currentUser.id);
+  const [operatorDisplayName, setOperatorDisplayName] = useState(currentUser.name || currentUser.email);
   const [createNote, setCreateNote] = useState("");
   const [signoffNote, setSignoffNote] = useState("");
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,7 @@ export default function HandoffClient({ caseId }: { caseId: string }) {
         ?? "";
       setSelectedSnapshotId(nextSnapshotId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load reviewed handoff workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load handoff data. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -167,10 +168,9 @@ export default function HandoffClient({ caseId }: { caseId: string }) {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Reviewed Handoff</p>
-            <h1 style={titleStyle}>{caseTitle || "Reviewed Snapshot Workspace"}</h1>
+            <h1 style={titleStyle}>{caseTitle || "Handoff Preparation"}</h1>
             <p style={subtitleStyle}>
-              Create immutable reviewed snapshots from current validation state, record explicit operator sign-off,
-              inspect descriptive handoff eligibility, and mark the eligible snapshot downstream packet generation should use.
+              Prepare a finalized version of this case for handoff. Save a review checkpoint, approve it, and select it for downstream use.
             </p>
           </div>
         </header>
@@ -218,7 +218,7 @@ export default function HandoffClient({ caseId }: { caseId: string }) {
             )}
 
             <section style={sectionCardStyle}>
-              <h2 style={sectionTitleStyle}>Create Reviewed Snapshot</h2>
+              <h2 style={sectionTitleStyle}>Save Review Checkpoint</h2>
               <form onSubmit={handleCreateSnapshot} style={formStyle}>
                 <label style={fieldStyle}>
                   <span style={labelStyle}>Operator identifier</span>
@@ -233,7 +233,7 @@ export default function HandoffClient({ caseId }: { caseId: string }) {
                   <input value={createNote} onChange={(event) => setCreateNote(event.target.value)} style={inputStyle} placeholder="Reason or review context" />
                 </label>
                 <button type="submit" style={primaryButtonStyle} disabled={working}>
-                  {working ? "Working..." : "Create Snapshot"}
+                  {working ? "Working..." : "Save Checkpoint"}
                 </button>
               </form>
             </section>
@@ -241,7 +241,7 @@ export default function HandoffClient({ caseId }: { caseId: string }) {
             <section style={sectionCardStyle}>
               <h2 style={sectionTitleStyle}>Reviewed Snapshots</h2>
               {snapshots.length === 0 ? (
-                <div style={subtlePanelStyle}>No reviewed snapshots have been created for this case yet.</div>
+                <div style={subtlePanelStyle}>No review checkpoints yet. Use the form above to save a checkpoint of the current case state.</div>
               ) : (
                 <div style={stackStyle}>
                   {snapshots.map((snapshot) => (
@@ -292,10 +292,10 @@ export default function HandoffClient({ caseId }: { caseId: string }) {
                         || selectedSnapshotSelectionIssues.length > 0
                       }
                     >
-                      {selectedSnapshot.status === "selected_for_handoff" ? "Selected for Handoff" : "Select for Handoff"}
+                      {selectedSnapshot.status === "selected_for_handoff" ? "Ready for Handoff" : "Use for Handoff"}
                     </button>
                     <button type="button" style={primaryButtonStyle} onClick={handleSignoff} disabled={working || selectedSnapshot.signoff_status === "signed_off" || !operatorId.trim()}>
-                      {selectedSnapshot.signoff_status === "signed_off" ? "Signed Off" : "Sign Off Snapshot"}
+                      {selectedSnapshot.signoff_status === "signed_off" ? "Approved" : "Approve Checkpoint"}
                     </button>
                   </div>
                 </div>

@@ -6,6 +6,8 @@ import type { CSSProperties } from "react";
 
 import type {
   AssignmentStatus,
+  CaseTypeTemplateMetadata,
+  DomainPackMetadata,
   EscalationReadinessState,
   SessionUser,
   SLAState,
@@ -17,6 +19,7 @@ import {
   WorkStatusSnapshot,
   WorkloadSummaryCards,
 } from "@/components/work-management/work-status-panels";
+import { fetchDomainPacks, fetchDomainPackDetail } from "@/lib/domains-api";
 import { fetchWorkQueue, fetchWorkSummary } from "@/lib/work-management-api";
 
 type ScopeFilter =
@@ -75,6 +78,8 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
   const [escalationState, setEscalationState] = useState<"" | EscalationReadinessState>("");
   const [domainPackId, setDomainPackId] = useState("");
   const [caseTypeId, setCaseTypeId] = useState("");
+  const [domainPacks, setDomainPacks] = useState<DomainPackMetadata[]>([]);
+  const [caseTypes, setCaseTypes] = useState<CaseTypeTemplateMetadata[]>([]);
   const [searchText, setSearchText] = useState("");
 
   async function loadData(showLoading = true) {
@@ -93,7 +98,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
       setItems(queueResponse.items);
       setSummaryResponse(summary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load work board.");
+      setError(err instanceof Error ? err.message : "Unable to load work board. Try refreshing the page.");
     } finally {
       if (showLoading) {
         setLoading(false);
@@ -106,6 +111,19 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+    fetchDomainPacks()
+      .then((res) => setDomainPacks(res.packs))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!domainPackId) { setCaseTypes([]); return; }
+    fetchDomainPackDetail(domainPackId)
+      .then((res) => setCaseTypes(res.pack.case_types))
+      .catch(() => setCaseTypes([]));
+  }, [domainPackId]);
 
   const myItems = useMemo(
     () => items.filter((item) => item.ownership.current_assignee?.user_id === currentUser.id),
@@ -215,9 +233,9 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Work Management</p>
-            <h1 style={titleStyle}>Operator Work Board</h1>
+            <h1 style={titleStyle}>My Work</h1>
             <p style={subtitleStyle}>
-              Explicit case ownership, local-user assignment, due-date tracking, and escalation-readiness views for daily operator workflow management.
+              Your assigned cases, deadlines, and priorities.
             </p>
           </div>
           <div style={headerActionsStyle}>
@@ -322,7 +340,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                     <option value="">All assignees</option>
                     {summaryResponse?.available_assignees.map((assignee) => (
                       <option key={assignee.user_id} value={assignee.user_id}>
-                        {assignee.display_name} ({assignee.user_id})
+                        {assignee.display_name}
                       </option>
                     ))}
                   </select>
@@ -371,21 +389,30 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                 </label>
                 <label style={fieldStyle}>
                   <span style={labelStyle}>Domain pack</span>
-                  <input
+                  <select
                     value={domainPackId}
-                    onChange={(event) => setDomainPackId(event.target.value)}
+                    onChange={(event) => { setDomainPackId(event.target.value); setCaseTypeId(""); }}
                     style={inputStyle}
-                    placeholder="medical_us"
-                  />
+                  >
+                    <option value="">All domain packs</option>
+                    {domainPacks.map((pack) => (
+                      <option key={pack.pack_id} value={pack.pack_id}>{pack.display_name}</option>
+                    ))}
+                  </select>
                 </label>
                 <label style={fieldStyle}>
                   <span style={labelStyle}>Case type</span>
-                  <input
+                  <select
                     value={caseTypeId}
                     onChange={(event) => setCaseTypeId(event.target.value)}
                     style={inputStyle}
-                    placeholder="medical_us:record_review"
-                  />
+                    disabled={!domainPackId}
+                  >
+                    <option value="">All case types</option>
+                    {caseTypes.map((ct) => (
+                      <option key={ct.case_type_id} value={ct.case_type_id}>{ct.display_name}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
 

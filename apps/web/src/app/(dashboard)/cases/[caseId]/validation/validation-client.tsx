@@ -115,7 +115,7 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
         setChecklistItems([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load validation workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load validation data. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
       await validateField(extractionId, fieldId, { status, reviewed_value: correctedValue, note: "" });
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Validation failed.");
+      setError(err instanceof Error ? err.message : "Validation failed. Please try again.");
     } finally {
       setSubmitting(null);
     }
@@ -141,7 +141,7 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
       await reviewRequirement(caseId, itemId, { status, note });
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Review failed.");
+      setError(err instanceof Error ? err.message : "Review update failed. Please try again.");
     } finally {
       setSubmitting(null);
     }
@@ -178,10 +178,9 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Human Validation</p>
-            <h1 style={titleStyle}>Validation Workspace</h1>
+            <h1 style={titleStyle}>Review Extracted Information</h1>
             <p style={subtitleStyle}>
-              Review and validate machine-generated extraction outputs and requirement assessments.
-              Original values are preserved — corrections are recorded as overlays.
+              Review and correct information extracted from your documents. Your changes are saved alongside the originals.
             </p>
           </div>
           <div style={summaryCardStyle}>
@@ -461,6 +460,17 @@ function RequirementRow({
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: string }) {
+  const labelMap: Record<string, string> = {
+    unreviewed: "Unreviewed",
+    accepted: "Accepted",
+    confirmed_supported: "Confirmed",
+    corrected: "Corrected",
+    manually_overridden: "Overridden",
+    rejected: "Rejected",
+    confirmed_missing: "Missing",
+    needs_followup: "Needs Follow-up",
+    requires_more_information: "Needs More Info",
+  };
   const colorMap: Record<string, { bg: string; fg: string }> = {
     unreviewed: { bg: "#e2e8f0", fg: "#475569" },
     accepted: { bg: "#d1fae5", fg: "#065f46" },
@@ -475,7 +485,7 @@ function StatusBadge({ status }: { status: string }) {
   const colors = colorMap[status] ?? { bg: "#e2e8f0", fg: "#475569" };
   return (
     <span style={{ ...statusBadgeBaseStyle, backgroundColor: colors.bg, color: colors.fg }}>
-      {status.replace(/_/g, " ")}
+      {labelMap[status] ?? status.replace(/_/g, " ")}
     </span>
   );
 }

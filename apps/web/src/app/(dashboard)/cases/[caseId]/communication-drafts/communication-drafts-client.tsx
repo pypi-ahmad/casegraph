@@ -13,6 +13,7 @@ import type {
   CommunicationDraftType,
   CommunicationTemplateMetadata,
   PacketSummary,
+  SessionUser,
   WorkflowPackRunRecord,
   WorkflowPackRunResponse,
   WorkflowRunRecord,
@@ -31,7 +32,18 @@ import { fetchCaseWorkflowPackRuns } from "@/lib/workflow-packs-api";
 
 type DraftStatusChoice = CommunicationDraftStatus;
 
-export default function CommunicationDraftsClient({ caseId }: { caseId: string }) {
+const DRAFT_STATUS_LABELS: Record<string, string> = {
+  needs_human_review: "Needs Review",
+  revised_placeholder: "Revised",
+  approved_placeholder: "Approved",
+  archived_placeholder: "Archived",
+};
+
+function draftStatusLabel(status: string): string {
+  return DRAFT_STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+}
+
+export default function CommunicationDraftsClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
   const searchParams = useSearchParams();
   const [caseTitle, setCaseTitle] = useState("");
   const [workflowRuns, setWorkflowRuns] = useState<WorkflowRunRecord[]>([]);
@@ -44,7 +56,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
   const [strategy, setStrategy] = useState<"deterministic_template_only" | "provider_assisted_draft">(
     "deterministic_template_only",
   );
-  const [operatorId, setOperatorId] = useState("");
+  const [operatorId, setOperatorId] = useState(currentUser.id);
   const [selectedPacketId, setSelectedPacketId] = useState("");
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState("");
   const [selectedWorkflowPackRunId, setSelectedWorkflowPackRunId] = useState("");
@@ -54,7 +66,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
   const [apiKey, setApiKey] = useState("");
   const [generationNote, setGenerationNote] = useState("");
   const [reviewStatus, setReviewStatus] = useState<DraftStatusChoice>("needs_human_review");
-  const [reviewedBy, setReviewedBy] = useState("");
+  const [reviewedBy, setReviewedBy] = useState(currentUser.id);
   const [reviewNotes, setReviewNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -131,7 +143,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
         setSelectedDraft(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load communication drafts workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load communication drafts. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -241,11 +253,9 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
         <header style={headerStyle}>
           <div>
             <p style={breadcrumbStyle}>Communication Drafts</p>
-            <h1 style={titleStyle}>{caseTitle || "Communication Draft Workspace"}</h1>
+            <h1 style={titleStyle}>{caseTitle || "Communication Drafts"}</h1>
             <p style={subtitleStyle}>
-              Reviewable draft generation grounded in explicit case, readiness, action, packet,
-              workflow, and optional retrieval evidence state. No outbound sending or recipient
-              resolution is performed here.
+              Draft and review communications for this case. All AI-generated content requires your review before use.
             </p>
           </div>
         </header>
@@ -321,7 +331,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
                     <option value="">Latest workflow run or none</option>
                     {workflowRuns.map((run) => (
                       <option key={run.run_id} value={run.run_id}>
-                        {run.workflow_id} • {run.status}
+                        {run.workflow_id} • {run.status.replace(/_/g, " ")}
                       </option>
                     ))}
                   </select>
@@ -336,7 +346,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
                     <option value="">Latest workflow-pack run or none</option>
                     {workflowPackRuns.map((run) => (
                       <option key={run.run_id} value={run.run_id}>
-                        {run.workflow_pack_id} • {run.status}
+                        {run.workflow_pack_id} • {run.status.replace(/_/g, " ")}
                       </option>
                     ))}
                   </select>
@@ -361,6 +371,9 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
 
                 {requiresProviderFields && (
                   <>
+                    <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0.5rem 0 0" }}>
+                      AI-assisted drafting requires provider credentials. These are used only for this request.
+                    </p>
                     <label style={fieldStyle}>
                       <span style={labelStyle}>Provider ID</span>
                       <input
@@ -426,7 +439,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
             <section style={sectionCardStyle}>
               <h2 style={sectionTitleStyle}>Draft Records</h2>
               {drafts.length === 0 ? (
-                <div style={subtlePanelStyle}>No communication drafts have been created for this case yet.</div>
+                <div style={subtlePanelStyle}>No communication drafts yet. Use the form above to generate a draft from a template.</div>
               ) : (
                 <div style={stackStyle}>
                   {drafts.map((draft) => (
@@ -443,7 +456,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
                       <div style={itemHeaderStyle}>
                         <strong>{labelForDraftType(draft.draft_type)}</strong>
                         <span style={{ ...badgeStyle, backgroundColor: statusColor(draft.status) }}>
-                          {draft.status.replace(/_/g, " ")}
+                          {draftStatusLabel(draft.status)}
                         </span>
                       </div>
                       <div style={metaGridStyle}>
@@ -468,7 +481,7 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
                   <div style={metaGridStyle}>
                     <span>Title</span><span>{selectedDraft.draft.title}</span>
                     <span>Subject</span><span>{selectedDraft.draft.subject}</span>
-                    <span>Status</span><span>{selectedDraft.draft.status.replace(/_/g, " ")}</span>
+                    <span>Status</span><span>{draftStatusLabel(selectedDraft.draft.status)}</span>
                     <span>Template</span><span>{selectedDraft.template?.display_name ?? selectedDraft.draft.template_id}</span>
                     <span>Strategy</span><span>{selectedDraft.draft.strategy.replace(/_/g, " ")}</span>
                     <span>Provider</span><span>{selectedDraft.draft.generation.provider || "Deterministic only"}</span>
@@ -594,10 +607,10 @@ export default function CommunicationDraftsClient({ caseId }: { caseId: string }
                         onChange={(event) => setReviewStatus(event.target.value as DraftStatusChoice)}
                         style={inputStyle}
                       >
-                        <option value="needs_human_review">Needs human review</option>
-                        <option value="revised_placeholder">Revised placeholder</option>
-                        <option value="approved_placeholder">Approved placeholder</option>
-                        <option value="archived_placeholder">Archived placeholder</option>
+                        <option value="needs_human_review">Needs Review</option>
+                        <option value="revised_placeholder">Revised</option>
+                        <option value="approved_placeholder">Approved</option>
+                        <option value="archived_placeholder">Archived</option>
                       </select>
                     </label>
                     <label style={fieldStyle}>
