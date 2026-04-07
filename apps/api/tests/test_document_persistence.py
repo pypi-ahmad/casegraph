@@ -9,9 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
-from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
@@ -32,7 +30,6 @@ from casegraph_agent_sdk.ingestion import (
 
 from app.ingestion.models import DocumentRecord
 from app.ingestion.registry import DocumentRegistryService
-from app.review.models import PageRecord
 
 
 # ---------------------------------------------------------------------------
@@ -439,7 +436,7 @@ class TestDocumentSchemaMigration:
     def test_legacy_table_gets_new_columns(self, tmp_path: Path) -> None:
         import sqlite3
 
-        from app.persistence.database import configure_engine, get_engine, init_database
+        from app.persistence.database import configure_engine, init_database
 
         db_path = tmp_path / "legacy.db"
         with sqlite3.connect(db_path) as conn:

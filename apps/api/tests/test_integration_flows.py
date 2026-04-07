@@ -12,13 +12,11 @@ Flow 3: case → workflow pack → readiness → packet → submission draft
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session

@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
+
 import ValidationClient from "./validation-client";
+
+export const metadata: Metadata = { title: "Validation" };
 
 export default async function CaseValidationPage({
   params,

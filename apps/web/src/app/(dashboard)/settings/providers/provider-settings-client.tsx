@@ -305,7 +305,7 @@ export default function ProviderSettingsClient() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                       {provider.capabilities.map((capability) => (
                         <span key={capability.id} style={capabilityChipStyle}>
-                          {capability.display_name}: {capability.status}
+                          {capability.display_name}
                         </span>
                       ))}
                     </div>

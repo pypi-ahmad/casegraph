@@ -36,7 +36,6 @@ from app.cases.service import CaseService, RAG_TASK_WORKFLOW_ID
 from app.persistence.database import configure_engine, get_engine, init_database
 from app.rag.evidence import EvidenceSelector, format_evidence_context
 from app.rag.registry import rag_task_registry
-from app.rag.service import RagExecutionService
 
 
 # ---------------------------------------------------------------------------

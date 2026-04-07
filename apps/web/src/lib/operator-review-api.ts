@@ -56,7 +56,7 @@ export async function fetchOperatorQueue(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load operator queue."));
+    throw new Error(await getErrorMessage(response, "Unable to load operator queue. Try refreshing the page."));
   }
   return (await response.json()) as ReviewQueueResponse;
 }
@@ -68,7 +68,7 @@ export async function fetchOperatorQueueSummary(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load queue summary."));
+    throw new Error(await getErrorMessage(response, "Unable to load queue summary. Try refreshing the page."));
   }
   return (await response.json()) as QueueSummaryResponse;
 }
@@ -93,7 +93,7 @@ export async function transitionCaseStage(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to update case stage."));
+    throw new Error(await getErrorMessage(response, "Unable to update case stage. Verify the transition is allowed and try again."));
   }
   return (await response.json()) as StageTransitionResponse;
 }
@@ -125,7 +125,7 @@ export async function generateCaseActions(caseId: string): Promise<ActionGenerat
     body: JSON.stringify({}),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to generate action items."));
+    throw new Error(await getErrorMessage(response, "Unable to generate action items. Ensure documents are linked to this case."));
   }
   return (await response.json()) as ActionGenerationResponse;
 }
@@ -150,7 +150,7 @@ export async function createReviewNote(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to create review note."));
+    throw new Error(await getErrorMessage(response, "Unable to create review note. Check your note content and try again."));
   }
   return (await response.json()) as ReviewNoteResponse;
 }

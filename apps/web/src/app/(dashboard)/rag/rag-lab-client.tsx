@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import type { CSSProperties, FormEvent } from "react";
 
 import type {
@@ -85,7 +86,7 @@ export default function RagLabClient() {
       setModels(res.models);
       if (res.models.length > 0) setSelectedModelId(res.models[0].model_id);
     } catch (err) {
-      setModelsError(err instanceof Error ? err.message : "Failed to load models.");
+      setModelsError(err instanceof Error ? err.message : "Unable to fetch models. Verify your API key and try again.");
     } finally {
       setModelsLoading(false);
     }
@@ -123,7 +124,7 @@ export default function RagLabClient() {
       setResult(res.result);
       setEvents(res.events);
     } catch (err) {
-      setExecError(err instanceof Error ? err.message : "Execution failed.");
+      setExecError(err instanceof Error ? err.message : "RAG query failed. Check your API key and model selection, then try again.");
     } finally {
       setExecuting(false);
     }
@@ -150,6 +151,8 @@ export default function RagLabClient() {
           <p style={subtitleStyle}>Execute tasks with retrieved evidence from indexed knowledge. Results include citations referencing evidence sources.</p>
         </header>
 
+        <AiDisclosureBanner />
+
         <div style={layoutStyle}>
           {/* --- Configuration --- */}
           <form onSubmit={handleExecute} style={sectionCardStyle}>
@@ -158,7 +161,7 @@ export default function RagLabClient() {
             <label style={fieldStyle}>
               <span style={labelStyle}>Task</span>
               <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} style={inputStyle}>
-                {tasks.map((t) => <option key={t.task_id} value={t.task_id}>{t.display_name} ({t.task_id})</option>)}
+                {tasks.map((t) => <option key={t.task_id} value={t.task_id}>{t.display_name}</option>)}
               </select>
             </label>
 
@@ -172,7 +175,7 @@ export default function RagLabClient() {
             <label style={fieldStyle}>
               <span style={labelStyle}>Provider</span>
               <select value={selectedProvider} onChange={(e) => { setSelectedProvider(e.target.value); setModels([]); setSelectedModelId(""); }} style={inputStyle}>
-                {providers.map((p) => <option key={p.id} value={p.id}>{p.display_name} ({p.id})</option>)}
+                {providers.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
               </select>
             </label>
 
@@ -325,8 +328,6 @@ export default function RagLabClient() {
                       <div>
                         {c.source_filename && <span style={metaTextStyle}>{c.source_filename}</span>}
                         {c.page_number != null && <span style={metaTextStyle}> · page {c.page_number}</span>}
-                        <br /><span style={metaTextStyle}>chunk: {c.chunk_id.slice(0, 12)}…</span>
-                        {c.document_id && <span style={metaTextStyle}> · doc: {c.document_id.slice(0, 12)}…</span>}
                       </div>
                     </div>
                   ))}

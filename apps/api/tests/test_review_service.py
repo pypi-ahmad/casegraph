@@ -2,25 +2,16 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
 from casegraph_agent_sdk.ingestion import (
-    BoundingBoxArtifact,
     CoordinateSpace,
-    DocumentProcessingStatus,
     GeometrySource,
     IngestionMode,
-    IngestionModePreference,
-    NormalizedExtractionOutput,
-    PageArtifact,
-    SourceFileMetadata,
-    TextBlockArtifact,
 )
-from casegraph_agent_sdk.review import PageReviewDetail
 
 from app.ingestion.models import DocumentRecord
 from app.review.models import PageRecord

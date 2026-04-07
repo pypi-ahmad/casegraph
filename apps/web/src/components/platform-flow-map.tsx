@@ -7,15 +7,12 @@ import type { CSSProperties } from "react";
  * Platform cross-link map — shows how inspector surfaces connect.
  *
  * Organized by domain flow so operators can navigate between related
- * surfaces without memorizing the nav bar.  Scaffolded surfaces are
- * clearly labelled so expectations are set.
+ * surfaces without memorizing the nav bar.
  */
 
 interface FlowLink {
   label: string;
   href: string;
-  /** If true, the surface is metadata-only / scaffolded */
-  scaffolded?: boolean;
   description: string;
 }
 
@@ -48,7 +45,7 @@ const FLOW_GROUPS: FlowGroup[] = [
   {
     title: "Operator Surfaces",
     links: [
-      { label: "Work Board", href: "/work", description: "SLA, assignment, and queue overview" },
+      { label: "Work Board", href: "/work", description: "Deadlines, assignment, and queue overview" },
       { label: "Queue", href: "/queue", description: "Operator review queue" },
       { label: "Validation", href: "#validation", description: "Field validation workspace (from case detail)" },
       { label: "Handoff", href: "#handoff", description: "Reviewed handoff and signoff (from case detail)" },
@@ -57,10 +54,10 @@ const FLOW_GROUPS: FlowGroup[] = [
     ],
   },
   {
-    title: "Platform Metadata",
+    title: "Platform Configuration",
     links: [
-      { label: "Providers", href: "/settings/providers", description: "BYOK key validation and model discovery" },
-      { label: "Target Packs", href: "/target-packs", description: "Submission target metadata and compatibility" },
+      { label: "Providers", href: "/settings/providers", description: "API key management and model configuration" },
+      { label: "Target Packs", href: "/target-packs", description: "Submission targets and compatibility" },
       { label: "Tasks", href: "/tasks", description: "Task registry and prompt execution" },
       { label: "Evals", href: "/evals", description: "Evaluation suites and regression fixtures" },
     ],
@@ -68,9 +65,9 @@ const FLOW_GROUPS: FlowGroup[] = [
   {
     title: "Runtime & Infrastructure",
     links: [
-      { label: "Runtime", href: "/runtime", scaffolded: true, description: "Agent and workflow metadata. Proxied from agent-runtime." },
-      { label: "Automation", href: "/automation", scaffolded: true, description: "Tool registry and MCP status. Proxied from agent-runtime." },
-      { label: "Topology", href: "/topology", scaffolded: true, description: "Visual graph of agents and workflows. Derived metadata only." },
+      { label: "Runtime", href: "/runtime", description: "System agents and workflow configuration" },
+      { label: "Automation", href: "/automation", description: "Tool registry and MCP status" },
+      { label: "Topology", href: "/topology", description: "Visual graph of agents and workflows." },
     ],
   },
 ];
@@ -80,9 +77,7 @@ export default function PlatformFlowMap({ caseId }: { caseId?: string }) {
     <div style={containerStyle}>
       <h3 style={mapTitleStyle}>Platform Flow Map</h3>
       <p style={mapSubtitleStyle}>
-        How inspector surfaces connect. Surfaces marked{" "}
-        <span style={scaffoldedInlineStyle}>scaffolded</span> are metadata-only
-        inspectors backed by proxied or stub APIs.
+        Quick links to related surfaces across the platform.
       </p>
       <div style={groupsStyle}>
         {FLOW_GROUPS.map((group) => (
@@ -104,9 +99,6 @@ export default function PlatformFlowMap({ caseId }: { caseId?: string }) {
                       <Link href={href} style={flowLinkStyle} title={link.description}>
                         {link.label}
                       </Link>
-                    )}
-                    {link.scaffolded && (
-                      <span style={scaffoldedBadgeStyle}>scaffolded</span>
                     )}
                   </li>
                 );
@@ -143,16 +135,6 @@ const mapSubtitleStyle: CSSProperties = {
   fontSize: "0.85rem",
   color: "#64748b",
   lineHeight: 1.5,
-};
-
-const scaffoldedInlineStyle: CSSProperties = {
-  display: "inline-block",
-  padding: "0.1rem 0.4rem",
-  borderRadius: "4px",
-  backgroundColor: "#fef3c7",
-  color: "#92400e",
-  fontSize: "0.75rem",
-  fontWeight: 600,
 };
 
 const groupsStyle: CSSProperties = {
@@ -204,13 +186,4 @@ const disabledLinkStyle: CSSProperties = {
   cursor: "default",
 };
 
-const scaffoldedBadgeStyle: CSSProperties = {
-  display: "inline-block",
-  padding: "0.1rem 0.35rem",
-  borderRadius: "4px",
-  backgroundColor: "#fef3c7",
-  color: "#92400e",
-  fontSize: "0.65rem",
-  fontWeight: 600,
-  lineHeight: 1.2,
-};
+

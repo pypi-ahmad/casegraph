@@ -7,6 +7,7 @@ import type { CSSProperties } from "react";
 import type { CaseRecord } from "@casegraph/agent-sdk";
 
 import { fetchCases } from "@/lib/cases-api";
+import { caseStatusLabel } from "@/lib/display-labels";
 
 export default function CasesClient() {
   const [cases, setCases] = useState<CaseRecord[]>([]);
@@ -58,11 +59,11 @@ export default function CasesClient() {
         </header>
 
         {loading ? (
-          <div style={panelStyle}>Loading cases...</div>
+          <div style={panelStyle}>Loading your cases…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : cases.length === 0 ? (
-          <div style={panelStyle}>No cases created yet. Use the “New Case” button above to open your first case.</div>
+          <div style={panelStyle}>No cases yet. Click "Create Case" above to get started.</div>
         ) : (
           <div style={gridStyle}>
             {cases.map((item) => (
@@ -70,9 +71,9 @@ export default function CasesClient() {
                 <div style={cardHeaderStyle}>
                   <div>
                     <h2 style={cardTitleStyle}>{item.title}</h2>
-                    <p style={cardIdStyle}>{item.case_id}</p>
+                    <p style={cardIdStyle}>Created {formatTimestamp(item.timestamps.created_at)}</p>
                   </div>
-                  <span style={statusBadgeStyle}>{item.status.replace(/_/g, " ")}</span>
+                  <span style={statusBadgeStyle}>{caseStatusLabel(item.status)}</span>
                 </div>
 
                 <p style={cardMetaStyle}>

@@ -96,8 +96,8 @@ def _generate_markdown_summary(manifest: PacketManifest) -> GeneratedArtifact:
 
     lines.append("## Overview")
     lines.append("")
-    lines.append(f"| Field | Value |")
-    lines.append(f"|-------|-------|")
+    lines.append("| Field | Value |")
+    lines.append("|-------|-------|")
     lines.append(f"| Status | {manifest.case_status} |")
     lines.append(f"| Current stage | {manifest.current_stage.replace('_', ' ')} |")
     lines.append(f"| Source mode | {manifest.source_mode.replace('_', ' ')} |")
@@ -166,8 +166,8 @@ def _render_section(lines: list[str], section: PacketSection) -> None:
         if not docs:
             lines.append("_No linked documents._")
             return
-        lines.append(f"| Filename | Pages | Content Type | Linked At |")
-        lines.append(f"|----------|-------|--------------|-----------|")
+        lines.append("| Filename | Pages | Content Type | Linked At |")
+        lines.append("|----------|-------|--------------|-----------|")
         for doc in docs:
             lines.append(
                 f"| {doc.get('filename', '?')} "
@@ -182,8 +182,8 @@ def _render_section(lines: list[str], section: PacketSection) -> None:
         if not exts:
             lines.append("_No extraction results._")
             return
-        lines.append(f"| Extraction ID | Status | Fields | Grounded | Strategy |")
-        lines.append(f"|---------------|--------|--------|----------|----------|")
+        lines.append("| Extraction ID | Status | Fields | Grounded | Strategy |")
+        lines.append("|---------------|--------|--------|----------|----------|")
         for ext in exts:
             eid = ext.get("extraction_id", "?")[:12]
             lines.append(
@@ -208,8 +208,8 @@ def _render_section(lines: list[str], section: PacketSection) -> None:
         items = data.get("items", [])
         if items:
             lines.append("")
-            lines.append(f"| Requirement | Priority | Status | Docs | Extractions |")
-            lines.append(f"|-------------|----------|--------|------|-------------|")
+            lines.append("| Requirement | Priority | Status | Docs | Extractions |")
+            lines.append("|-------------|----------|--------|------|-------------|")
             for item in items:
                 lines.append(
                     f"| {item.get('display_name', '?')} "
@@ -247,8 +247,8 @@ def _render_section(lines: list[str], section: PacketSection) -> None:
         if not runs:
             lines.append("_No workflow runs._")
             return
-        lines.append(f"| Run ID | Workflow | Status | Created |")
-        lines.append(f"|--------|----------|--------|---------|")
+        lines.append("| Run ID | Workflow | Status | Created |")
+        lines.append("|--------|----------|--------|---------|")
         for run in runs:
             rid = run.get("run_id", "?")[:12]
             lines.append(

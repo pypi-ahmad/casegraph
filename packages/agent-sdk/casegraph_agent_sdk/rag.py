@@ -16,7 +16,6 @@ from casegraph_agent_sdk.tasks import (
     FinishReason,
     StructuredOutputResult,
     TaskExecutionError,
-    TaskExecutionEvent,
     TaskId,
     UsageMetadata,
 )

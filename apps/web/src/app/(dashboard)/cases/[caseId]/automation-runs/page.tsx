@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { SessionUser } from "@casegraph/agent-sdk";
 import { auth } from "@/lib/auth/config";
 import AutomationRunClient from "./automation-run-client";
+
+export const metadata: Metadata = { title: "Automation Runs" };
 
 export default async function AutomationRunPage({
   params,

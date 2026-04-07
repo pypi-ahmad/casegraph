@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
   CaseTargetPackSelection,
@@ -61,7 +62,7 @@ export default function CaseTargetPackSection({
       })
       .catch((err) => {
         if (!cancelled) {
-          setMessage(err instanceof Error ? err.message : "Unable to load compatible target packs.");
+          setMessage(err instanceof Error ? err.message : "Unable to load compatible target packs. Check that a domain pack is assigned to this case.");
           setAvailablePacks([]);
         }
       })
@@ -89,7 +90,7 @@ export default function CaseTargetPackSection({
       })
       .catch((err) => {
         if (!cancelled) {
-          setMessage(err instanceof Error ? err.message : "Unable to load target-pack detail.");
+          setMessage(err instanceof Error ? err.message : "Unable to load target-pack detail. The pack may have been removed or updated.");
           setSelectedPack(null);
         }
       });
@@ -113,9 +114,9 @@ export default function CaseTargetPackSection({
     try {
       const response = await updateCaseTargetPack(caseId, { pack_id: selectedPackId });
       setSelection(response.selection);
-      setMessage(response.result.message || "Target pack saved.");
+      setMessage(response.result.message || "Target pack saved. Pack settings now apply to submissions and releases for this case.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to save target-pack selection.");
+      setMessage(err instanceof Error ? err.message : "Unable to save target-pack selection. Try selecting a different pack or refreshing.");
     } finally {
       setWorking(false);
     }
@@ -131,7 +132,7 @@ export default function CaseTargetPackSection({
       setSelectedPack(null);
       setMessage(response.result.message || "Target pack cleared.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to clear target-pack selection.");
+      setMessage(err instanceof Error ? err.message : "Unable to clear target-pack selection. Try refreshing the page.");
     } finally {
       setWorking(false);
     }
@@ -144,7 +145,7 @@ export default function CaseTargetPackSection({
           <div>
             <h2 style={sectionTitleStyle}>Target Pack</h2>
             <p style={helperTextStyle}>
-              Target packs are selected only after domain pack and case-type context exists for the case.
+              Set up a domain pack and case type first, then you can pick a target pack here.
             </p>
           </div>
           <Link href="/target-packs" style={linkStyle}>
@@ -175,7 +176,7 @@ export default function CaseTargetPackSection({
         <div style={panelStyle}>Loading compatible target packs...</div>
       ) : availablePacks.length === 0 ? (
         <div style={panelStyle}>
-          No target packs are registered for this case domain and case-type combination yet.
+          No compatible target packs found for this case type. Ask an admin to register one, or browse the target pack registry.
         </div>
       ) : (
         <>
@@ -234,7 +235,7 @@ export default function CaseTargetPackSection({
                     {selectedPack.metadata.pack_id} · v{selectedPack.metadata.version}
                   </p>
                 </div>
-                <span style={badgeStyle}>{selectedPack.metadata.category.replace(/_/g, " ")}</span>
+                <span style={badgeStyle}>{titleCase(selectedPack.metadata.category)}</span>
               </div>
               <p style={helperTextStyle}>{selectedPack.metadata.description}</p>
               <div style={tagRowStyle}>

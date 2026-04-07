@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -12,11 +11,8 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from casegraph_agent_sdk.evals import (
     EvalAssertion,
-    EvalAssertionResult,
     EvalCaseDefinition,
-    EvalCaseResult,
     EvalFixtureMeta,
-    EvalRunRecord,
     EvalSuiteDefinition,
 )
 
@@ -24,7 +20,6 @@ from app.evals.fixtures import get_all_fixtures, get_fixture
 from app.evals.models import EvalRunModel
 from app.evals.regression import (
     _evaluate_assertion,
-    _normalize_run_output,
     _resolve_path,
     run_eval_case,
     run_eval_suite,
@@ -37,7 +32,6 @@ from app.evals.service import (
     list_eval_suites,
 )
 from app.evals.suites import (
-    EvalSuiteRegistry,
     build_default_eval_suite_registry,
     get_eval_suite_registry,
 )

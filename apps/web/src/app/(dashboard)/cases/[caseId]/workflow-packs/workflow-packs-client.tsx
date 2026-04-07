@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 
@@ -10,9 +11,11 @@ import type {
   WorkflowPackRunResponse,
   WorkflowPackRunSummaryResponse,
   WorkflowPackStageResult,
+  SessionUser,
 } from "@casegraph/agent-sdk";
 
 import { fetchCaseDetail } from "@/lib/cases-api";
+import { readinessLabel, stageLabel, titleCase } from "@/lib/display-labels";
 import {
   executeWorkflowPack,
   fetchCaseWorkflowPackRuns,
@@ -20,14 +23,14 @@ import {
   fetchWorkflowPacks,
 } from "@/lib/workflow-packs-api";
 
-export default function WorkflowPackClient({ caseId }: { caseId: string }) {
+export default function WorkflowPackClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
   const [caseTitle, setCaseTitle] = useState("");
   const [caseTypeId, setCaseTypeId] = useState("");
   const [packs, setPacks] = useState<WorkflowPackMetadata[]>([]);
   const [runs, setRuns] = useState<WorkflowPackRunResponse[]>([]);
   const [selectedPackId, setSelectedPackId] = useState("");
   const [selectedRunId, setSelectedRunId] = useState("");
-  const [operatorId, setOperatorId] = useState("");
+  const [operatorId, setOperatorId] = useState(currentUser.id);
   const [skipOptional, setSkipOptional] = useState(false);
   const [runDetail, setRunDetail] = useState<WorkflowPackRunSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
         setRunDetail(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load workflow pack workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load workflow pack workspace. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,7 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
     fetchWorkflowPackRun(selectedRunId)
       .then((detail) => setRunDetail(detail))
       .catch((err: unknown) => {
-        setMessage(err instanceof Error ? err.message : "Unable to load workflow pack run detail.");
+        setMessage(err instanceof Error ? err.message : "Unable to load workflow pack run detail. The run may still be processing.");
       })
       .finally(() => setWorking(false));
   }, [selectedRunId]);
@@ -107,12 +110,12 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
         operator_id: operatorId.trim(),
         skip_optional_stages: skipOptional,
       });
-      setMessage(response.message || "Workflow pack run created.");
+      setMessage(response.message || "Workflow started. Check the run status below for progress.");
       if (response.run.run_id) {
         await load(response.run.run_id);
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to execute workflow pack.");
+      setMessage(err instanceof Error ? err.message : "Unable to execute workflow pack. Verify the selected pack and try again.");
     } finally {
       setWorking(false);
     }
@@ -136,19 +139,21 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
           <p style={breadcrumbStyle}>Workflow Packs</p>
           <h1 style={titleStyle}>{caseTitle || "Workflow Processing"}</h1>
           <p style={subtitleStyle}>
-            Run the processing workflow for this case. All outputs reflect actual case data and require your review.
+            Run the processing workflow for this case. Results are based on real case data and ready for your review.
           </p>
           {caseTypeId && (
             <p style={{ ...metaTextStyle, marginTop: "0.5rem" }}>
-              Case type: <span style={monoStyle}>{caseTypeId}</span>
+              Case type: {titleCase(caseTypeId)}
             </p>
           )}
         </header>
 
+        <AiDisclosureBanner />
+
         {message && <div style={panelStyle}>{message}</div>}
 
         {loading ? (
-          <div style={panelStyle}>Loading…</div>
+          <div style={panelStyle}>Loading workflow packs…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -158,7 +163,7 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
               <h2 style={sectionTitleStyle}>Execute Workflow Pack</h2>
               {packs.length === 0 ? (
                 <div style={subtlePanelStyle}>
-                  No workflow packs are compatible with this case type.
+                  No workflow packs match this case type. Check the domain pack configuration or select a different case type.
                 </div>
               ) : (
                 <form onSubmit={handleExecute} style={formStyle}>
@@ -180,10 +185,9 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
                   <label style={fieldStyle}>
                     <span style={labelStyle}>Operator</span>
                     <input
-                      value={operatorId}
-                      onChange={(event) => setOperatorId(event.target.value)}
-                      style={inputStyle}
-                      placeholder="Operator identifier"
+                      value={currentUser.name || currentUser.email || operatorId}
+                      readOnly
+                      style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }}
                     />
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem" }}>
@@ -206,7 +210,7 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
             <section style={sectionCardStyle}>
               <h2 style={sectionTitleStyle}>Workflow Pack Runs</h2>
               {runs.length === 0 ? (
-                <div style={subtlePanelStyle}>No workflow pack runs have been created for this case yet.</div>
+                <div style={subtlePanelStyle}>No workflow runs yet. Select a pack above and run it to see results here.</div>
               ) : (
                 <div style={stackStyle}>
                   {runs.map((entry) => (
@@ -220,13 +224,13 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
                       onClick={() => setSelectedRunId(entry.run.run_id)}
                     >
                       <div style={itemHeaderStyle}>
-                        <strong>{entry.run.run_id.slice(0, 12)}…</strong>
+                        <strong>Run {runs.indexOf(entry) + 1}</strong>
                         <span style={{ ...badgeStyle, backgroundColor: statusColor(entry.run.status) }}>
-                          {entry.run.status.replace(/_/g, " ")}
+                          {titleCase(entry.run.status)}
                         </span>
                       </div>
                       <div style={metaGridStyle}>
-                        <span>Pack</span><span style={monoStyle}>{entry.run.workflow_pack_id}</span>
+                        <span>Pack</span><span>{packs.find(p => p.workflow_pack_id === entry.run.workflow_pack_id)?.display_name || titleCase(entry.run.workflow_pack_id)}</span>
                         <span>Operator</span><span>{entry.run.operator_id || "—"}</span>
                         <span>Stages</span><span>{entry.run.stage_results.length}</span>
                         <span>Created</span><span>{formatTs(entry.run.created_at)}</span>
@@ -306,13 +310,11 @@ function RunOverviewPanel({
     <section style={sectionCardStyle}>
       <h2 style={sectionTitleStyle}>Run Overview</h2>
       <div style={metaGridStyle}>
-        <span>Run ID</span><span style={monoStyle}>{run.run_id}</span>
         <span>Status</span>
         <span style={{ ...badgeStyle, backgroundColor: statusColor(run.status), width: "fit-content" }}>
-          {run.status.replace(/_/g, " ")}
+          {titleCase(run.status)}
         </span>
-        <span>Workflow Pack</span><span style={monoStyle}>{run.workflow_pack_id}</span>
-        <span>Domain Pack</span><span>{domainPackName || "—"}</span>
+        <span>Workflow Pack</span><span>{domainPackName || titleCase(run.workflow_pack_id)}</span>
         <span>Operator</span><span>{run.operator_id || "—"}</span>
         <span>Started</span><span>{formatTs(run.started_at)}</span>
         <span>Completed</span><span>{formatTs(run.completed_at)}</span>
@@ -368,13 +370,12 @@ function StageSummaryCard({
   return (
     <article style={itemCardStyle}>
       <div style={itemHeaderStyle}>
-        <strong>{index + 1}. {stage.display_name || stage.stage_id.replace(/_/g, " ")}</strong>
+        <strong>{index + 1}. {stage.display_name || titleCase(stage.stage_id)}</strong>
         <span style={{ ...badgeStyle, backgroundColor: statusColor(stage.status) }}>
-          {stage.status.replace(/_/g, " ")}
+          {titleCase(stage.status)}
         </span>
       </div>
       <div style={metaGridStyle}>
-        <span>Stage</span><span style={monoStyle}>{stage.stage_id}</span>
         <span>Started</span><span>{formatTs(stage.started_at)}</span>
         <span>Completed</span><span>{formatTs(stage.completed_at)}</span>
       </div>
@@ -472,7 +473,7 @@ function StageSummaryDetails({
           <div style={metaGridStyle}>
             <span>Readiness</span>
             <span style={{ ...badgeStyle, backgroundColor: readinessColor(str("readiness_status")), width: "fit-content" }}>
-              {str("readiness_status").replace(/_/g, " ") || "unknown"}
+              {readinessLabel(str("readiness_status")) || "unknown"}
             </span>
             <span>Total items</span><span>{num("total_items")}</span>
             <span>Supported</span><span>{num("supported_items")}</span>
@@ -578,9 +579,9 @@ function RecommendationPanel({ run }: { run: WorkflowPackRunRecord }) {
       <div style={metaGridStyle}>
         <span>Readiness</span>
         <span style={{ ...badgeStyle, backgroundColor: readinessColor(rec.readiness_status), width: "fit-content" }}>
-          {rec.readiness_status.replace(/_/g, " ")}
+          {readinessLabel(rec.readiness_status)}
         </span>
-        <span>Suggested review stage</span><span>{rec.suggested_next_stage.replace(/_/g, " ")}</span>
+        <span>Suggested review stage</span><span>{stageLabel(rec.suggested_next_stage)}</span>
       </div>
       {flags.length > 0 && (
         <div style={{ ...subtlePanelStyle, marginTop: "0.75rem", borderColor: "#fbbf24" }}>

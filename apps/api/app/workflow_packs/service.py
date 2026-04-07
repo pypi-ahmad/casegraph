@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlmodel import Session, desc, select
@@ -46,7 +45,6 @@ from app.extraction.models import ExtractionRunModel
 from app.ingestion.models import DocumentRecord
 from app.operator_review.actions import ActionItemService
 from app.operator_review.models import ActionItemModel
-from app.packets.models import PacketRecordModel
 from app.packets.service import PacketAssemblyService
 from app.persistence.database import isoformat_utc, utcnow
 from app.readiness.service import ReadinessService

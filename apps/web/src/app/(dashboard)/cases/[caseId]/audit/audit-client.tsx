@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
   AuditEventRecord,
@@ -45,7 +46,7 @@ export default function AuditClient({ caseId }: { caseId: string }) {
       setDecisions(decisionData);
       setLineage(lineageData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load case audit workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load audit data. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -60,11 +61,11 @@ export default function AuditClient({ caseId }: { caseId: string }) {
   }
 
   if (loading) {
-    return <main style={pageStyle}><section style={containerStyle}><div style={panelStyle}>Loading case audit workspace...</div></section></main>;
+    return <main style={pageStyle}><section style={containerStyle}><div style={panelStyle}>Loading activity history…</div></section></main>;
   }
 
   if (error || !timeline || !decisions || !lineage) {
-    return <main style={pageStyle}><section style={containerStyle}><div style={errorPanelStyle}>{error ?? "Audit data unavailable."}</div></section></main>;
+    return <main style={pageStyle}><section style={containerStyle}><div style={errorPanelStyle}>{error ?? "Activity history could not be loaded. Try refreshing the page or contact an admin if the issue persists."}</div></section></main>;
   }
 
   return (
@@ -106,7 +107,7 @@ export default function AuditClient({ caseId }: { caseId: string }) {
               <select value={category} onChange={(event) => setCategory(event.target.value)} style={inputStyle}>
                 <option value="">All categories</option>
                 {timeline.filters.categories.map((item) => (
-                  <option key={item} value={item}>{item}</option>
+                  <option key={item} value={item}>{titleCase(item)}</option>
                 ))}
               </select>
             </label>
@@ -115,7 +116,7 @@ export default function AuditClient({ caseId }: { caseId: string }) {
               <select value={eventType} onChange={(event) => setEventType(event.target.value)} style={inputStyle}>
                 <option value="">All event types</option>
                 {timeline.filters.event_types.map((item) => (
-                  <option key={item} value={item}>{item}</option>
+                  <option key={item} value={item}>{titleCase(item)}</option>
                 ))}
               </select>
             </label>
@@ -129,7 +130,7 @@ export default function AuditClient({ caseId }: { caseId: string }) {
           <section style={sectionCardStyle}>
             <h2 style={sectionTitleStyle}>Audit Timeline</h2>
             {timeline.events.length === 0 ? (
-              <div style={panelStyle}>No persisted audit events match the current filter.</div>
+              <div style={panelStyle}>No events match the current filter. Try adjusting or clearing the filters above.</div>
             ) : (
               <div style={stackStyle}>
                 {timeline.events.map((event) => <AuditEventCard key={event.event_id} event={event} />)}
@@ -140,7 +141,7 @@ export default function AuditClient({ caseId }: { caseId: string }) {
           <section style={sectionCardStyle}>
             <h2 style={sectionTitleStyle}>Decision Ledger</h2>
             {decisions.decisions.length === 0 ? (
-              <div style={panelStyle}>No persisted decision ledger entries for this case yet.</div>
+              <div style={panelStyle}>No decisions recorded for this case yet. They will appear here as the case progresses.</div>
             ) : (
               <div style={stackStyle}>
                 {decisions.decisions.map((entry) => <DecisionCard key={entry.decision_id} entry={entry} />)}
@@ -152,7 +153,7 @@ export default function AuditClient({ caseId }: { caseId: string }) {
         <section style={sectionCardStyle}>
           <h2 style={sectionTitleStyle}>Artifact Lineage</h2>
           {lineage.records.length === 0 ? (
-            <div style={panelStyle}>No derived artifact lineage has been recorded for this case yet.</div>
+            <div style={panelStyle}>No artifact history recorded yet. Lineage entries appear as documents and workflows produce output.</div>
           ) : (
             <div style={stackStyle}>
               {lineage.records.map((record) => <LineageCard key={record.record_id} record={record} />)}
@@ -176,7 +177,7 @@ function AuditEventCard({ event }: { event: AuditEventRecord }) {
       </div>
       <p style={entryMessageStyle}>{event.change_summary.message || event.entity.display_label || event.event_type}</p>
       <div style={metaTextStyle}>Actor: {event.actor.display_name || event.actor.actor_id || event.actor.actor_type}</div>
-      <div style={metaTextStyle}>Entity: {event.entity.entity_type} · {event.entity.entity_id}</div>
+      <div style={metaTextStyle}>Entity: {event.entity.entity_type}{event.entity.display_label ? ` — ${event.entity.display_label}` : ""}</div>
       {event.change_summary.field_changes.length > 0 && (
         <ul style={detailListStyle}>
           {event.change_summary.field_changes.map((change, index) => (
@@ -199,7 +200,7 @@ function DecisionCard({ entry }: { entry: DecisionLedgerEntry }) {
       </div>
       <p style={entryMessageStyle}>{entry.outcome || entry.decision_type}</p>
       <div style={metaTextStyle}>Actor: {entry.actor.display_name || entry.actor.actor_id || entry.actor.actor_type}</div>
-      <div style={metaTextStyle}>Source: {entry.source_entity.entity_type} · {entry.source_entity.entity_id}</div>
+      <div style={metaTextStyle}>Source: {entry.source_entity.entity_type}{entry.source_entity.display_label ? ` — ${entry.source_entity.display_label}` : ""}</div>
       {entry.reason && <div style={metaTextStyle}>Reason: {entry.reason}</div>}
       {entry.note && <div style={metaTextStyle}>Note: {entry.note}</div>}
     </article>
@@ -212,16 +213,15 @@ function LineageCard({ record }: { record: LineageRecord }) {
       <div style={entryHeaderStyle}>
         <div>
           <span style={badgeStyle}>{record.artifact.artifact_type}</span>
-          <span style={monoLabelStyle}>{record.artifact.artifact_id}</span>
         </div>
         <span style={timestampStyle}>{formatTimestamp(record.created_at)}</span>
       </div>
-      <p style={entryMessageStyle}>{record.artifact.display_label || record.artifact.artifact_id}</p>
+      <p style={entryMessageStyle}>{record.artifact.display_label || record.artifact.artifact_type}</p>
       {record.notes.length > 0 && <div style={metaTextStyle}>{record.notes.join(" ")}</div>}
       <ul style={detailListStyle}>
         {record.edges.map((edge) => (
           <li key={edge.edge_id} style={detailItemStyle}>
-            {edge.relationship_type}: {edge.source.artifact_type} · {edge.source.display_label || edge.source.artifact_id}
+            {edge.relationship_type}: {edge.source.artifact_type} · {edge.source.display_label || edge.source.artifact_type}
           </li>
         ))}
       </ul>

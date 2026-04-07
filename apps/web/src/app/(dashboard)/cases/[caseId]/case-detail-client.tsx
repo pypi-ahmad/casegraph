@@ -8,6 +8,7 @@ import type {
   CaseDetailResponse,
   CaseTypeDetailResponse,
   CaseStatus,
+  CaseStageResponse,
   IngestionResultSummary,
   SessionUser,
 } from "@casegraph/agent-sdk";
@@ -21,10 +22,13 @@ import {
   updateCase,
 } from "@/lib/cases-api";
 import { fetchCaseTypeDetail } from "@/lib/domains-api";
+import { fetchCaseStage } from "@/lib/operator-review-api";
 import { fetchWorkflows } from "@/lib/runtime-api";
 
 import CaseTargetPackSection from "./case-target-pack-section";
 import CaseWorkManagementSection from "./case-work-management-section";
+import CaseLifecycleIndicator from "@/components/case-lifecycle-indicator";
+import { caseStatusLabel, titleCase } from "@/lib/display-labels";
 import PlatformFlowMap from "@/components/platform-flow-map";
 
 type EditableCaseStatus = CaseStatus;
@@ -43,6 +47,7 @@ export default function CaseDetailClient({
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stageResponse, setStageResponse] = useState<CaseStageResponse | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [summary, setSummary] = useState("");
@@ -54,6 +59,7 @@ export default function CaseDetailClient({
   const [selectedRunDocuments, setSelectedRunDocuments] = useState<string[]>([]);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -88,6 +94,13 @@ export default function CaseDetailClient({
       setRunWorkflowId(
         caseDetail.case.workflow_binding?.workflow_id ?? workflowResponse.workflows[0]?.id ?? "",
       );
+
+      try {
+        const stageData = await fetchCaseStage(caseId);
+        setStageResponse(stageData);
+      } catch {
+        /* Stage data is supplementary — don't block the page */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load case workspace. Try refreshing the page.");
     } finally {
@@ -110,6 +123,20 @@ export default function CaseDetailClient({
   async function handleCaseUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!detail) return;
+    const errors: Record<string, string> = {};
+    if (!title.trim()) {
+      errors.title = "Case title is required.";
+    } else if (title.trim().length < 3) {
+      errors.title = "Title must be at least 3 characters.";
+    }
+    if (summary.trim().length > 0 && summary.trim().length < 10) {
+      errors.summary = "Summary should be at least 10 characters or left blank.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
     setSubmitting(true);
     setFormMessage(null);
     try {
@@ -128,9 +155,9 @@ export default function CaseDetailClient({
             }
           : current,
       );
-      setFormMessage("Case metadata updated.");
+      setFormMessage("Case metadata saved.");
     } catch (err) {
-      setFormMessage(err instanceof Error ? err.message : "Unable to update case.");
+      setFormMessage(err instanceof Error ? err.message : "Unable to update case. Check your changes and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -145,9 +172,9 @@ export default function CaseDetailClient({
       await linkCaseDocument(detail.case.case_id, { document_id: documentToLink });
       setDocumentToLink("");
       await load();
-      setFormMessage("Document linked to case.");
+      setFormMessage("Document linked. You can now include it in workflow runs.");
     } catch (err) {
-      setFormMessage(err instanceof Error ? err.message : "Unable to link document.");
+      setFormMessage(err instanceof Error ? err.message : "Unable to link document. Verify the document has completed ingestion and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -168,9 +195,9 @@ export default function CaseDetailClient({
       setRunNotes("");
       setSelectedRunDocuments([]);
       await load();
-      setFormMessage("Run record created.");
+      setFormMessage("Run record created. Check the run status below for progress.");
     } catch (err) {
-      setFormMessage(err instanceof Error ? err.message : "Unable to create run record.");
+      setFormMessage(err instanceof Error ? err.message : "Unable to create run record. Ensure a workflow is selected and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -185,11 +212,11 @@ export default function CaseDetailClient({
   }
 
   if (loading) {
-    return <main style={pageStyle}><section style={containerStyle}><div style={panelStyle}>Loading case workspace...</div></section></main>;
+    return <main style={pageStyle}><section style={containerStyle}><div style={panelStyle}>Loading case details…</div></section></main>;
   }
 
   if (error || !detail) {
-    return <main style={pageStyle}><section style={containerStyle}><div style={errorPanelStyle}>{error ?? "Case not found."}</div></section></main>;
+    return <main style={pageStyle}><section style={containerStyle}><div style={errorPanelStyle}>{error ?? "Case not found."}</div><div style={{ marginTop: "0.75rem" }}><a href="/cases" style={{ color: "#3b82f6" }}>Back to Cases</a></div></section></main>;
   }
 
   return (
@@ -203,7 +230,7 @@ export default function CaseDetailClient({
             <p style={breadcrumbStyle}>Cases</p>
             <h1 style={titleStyle}>{detail.case.title}</h1>
             <p style={subtitleStyle}>
-              Persistent case metadata, linked documents, selected workflow, and tracked run records.
+              Documents, workflow progress, and processing history for this case.
             </p>
             <nav style={caseNavStyle}>
               <div style={navGroupStyle}>
@@ -236,8 +263,12 @@ export default function CaseDetailClient({
               </div>
             </nav>
           </div>
-          <span style={statusBadgeStyle}>{detail.case.status.replace(/_/g, " ")}</span>
+          <span style={statusBadgeStyle}>{caseStatusLabel(detail.case.status)}</span>
         </header>
+
+        {stageResponse && (
+          <CaseLifecycleIndicator currentStage={stageResponse.stage.current_stage} />
+        )}
 
         {formMessage && <div style={panelStyle}>{formMessage}</div>}
 
@@ -256,7 +287,13 @@ export default function CaseDetailClient({
             <form onSubmit={handleCaseUpdate} style={formGridStyle}>
               <label style={fieldStyle}>
                 <span style={labelStyle}>Title</span>
-                <input value={title} onChange={(event) => setTitle(event.target.value)} style={inputStyle} />
+                <input
+                  value={title}
+                  onChange={(event) => { setTitle(event.target.value); setFieldErrors((prev) => { const { title: _, ...rest } = prev; return rest; }); }}
+                  onBlur={() => { if (!title.trim()) setFieldErrors((prev) => ({ ...prev, title: "Case title is required." })); else if (title.trim().length < 3) setFieldErrors((prev) => ({ ...prev, title: "Title must be at least 3 characters." })); }}
+                  style={fieldErrors.title ? { ...inputStyle, borderColor: "#ef4444" } : inputStyle}
+                />
+                {fieldErrors.title && <span style={fieldErrorStyle}>{fieldErrors.title}</span>}
               </label>
               <label style={fieldStyle}>
                 <span style={labelStyle}>Category</span>
@@ -285,7 +322,14 @@ export default function CaseDetailClient({
               </label>
               <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
                 <span style={labelStyle}>Summary</span>
-                <textarea value={summary} onChange={(event) => setSummary(event.target.value)} style={textareaStyle} rows={4} />
+                <textarea
+                  value={summary}
+                  onChange={(event) => { setSummary(event.target.value); setFieldErrors((prev) => { const { summary: _, ...rest } = prev; return rest; }); }}
+                  onBlur={() => { if (summary.trim().length > 0 && summary.trim().length < 10) setFieldErrors((prev) => ({ ...prev, summary: "Summary should be at least 10 characters or left blank." })); }}
+                  style={fieldErrors.summary ? { ...textareaStyle, borderColor: "#ef4444" } : textareaStyle}
+                  rows={4}
+                />
+                {fieldErrors.summary && <span style={fieldErrorStyle}>{fieldErrors.summary}</span>}
               </label>
               <div style={metaInfoStyle}>
                 Created: {formatTimestamp(detail.case.timestamps.created_at)}
@@ -307,16 +351,16 @@ export default function CaseDetailClient({
               <div style={{ ...jsonPanelStyle, marginTop: "0.75rem" }}>
                 <strong>Domain Context</strong>
                 <p style={domainContextNoteStyle}>
-                  This case stores domain pack linkage only. The bindings and
-                  requirement checklist below are resolved from the current
-                  registry metadata and do not represent regulatory decisions,
-                  payer rules, or tax advice.
+                  Domain and case type settings are loaded from the current
+                  configuration. The checklist and requirements shown below
+                  are working references — they do not represent regulatory
+                  rulings, payer decisions, or tax advice.
                 </p>
                 <div style={domainContextGridStyle}>
                   <div style={domainContextFieldStyle}>
-                    <span style={domainContextLabelStyle}>Pack</span>
+                    <span style={domainContextLabelStyle}>Domain</span>
                     <span style={domainContextValueStyle}>
-                      {detail.case.domain_context.domain_pack_id}
+                      {titleCase(detail.case.domain_context.domain_pack_id)}
                     </span>
                   </div>
                   <div style={domainContextFieldStyle}>
@@ -443,7 +487,7 @@ export default function CaseDetailClient({
                 <option value="">Select an ingested document</option>
                 {linkableDocuments.map((item) => (
                   <option key={item.document_id} value={item.document_id}>
-                    {item.source_file.filename} ({item.document_id})
+                    {item.source_file.filename}
                   </option>
                 ))}
               </select>
@@ -452,7 +496,7 @@ export default function CaseDetailClient({
               </button>
             </form>
             {detail.documents.length === 0 ? (
-              <div style={panelStyle}>No documents linked to this case.</div>
+              <div style={panelStyle}>No documents linked yet. Select a document above, or upload one from the Documents page first.</div>
             ) : (
               <div style={stackStyle}>
                 {detail.documents.map((item) => (
@@ -461,7 +505,6 @@ export default function CaseDetailClient({
                       <strong>{item.source_file.filename}</strong>
                       <span style={subtleBadgeStyle}>{item.document_status ?? "unknown"}</span>
                     </div>
-                    <p style={monoTextStyle}>{item.document_id}</p>
                     <p style={itemMetaStyle}>Mode: {item.resolved_mode ?? "unknown"}</p>
                     <p style={itemMetaStyle}>Linked: {formatTimestamp(item.linked_at)}</p>
                     {item.document_status === "completed" && (
@@ -523,16 +566,15 @@ export default function CaseDetailClient({
             </form>
 
             {detail.runs.length === 0 ? (
-              <div style={panelStyle}>No run records created yet.</div>
+              <div style={panelStyle}>No workflow runs yet. Select a workflow and linked documents above to start processing.</div>
             ) : (
               <div style={stackStyle}>
                 {detail.runs.map((run) => (
                   <article key={run.run_id} style={itemCardStyle}>
                     <div style={itemHeaderStyle}>
                       <strong>{run.workflow_id}</strong>
-                      <span style={subtleBadgeStyle}>{run.status.replace(/_/g, " ")}</span>
+                      <span style={subtleBadgeStyle}>{titleCase(run.status)}</span>
                     </div>
-                    <p style={monoTextStyle}>{run.run_id}</p>
                     <p style={itemMetaStyle}>Created: {formatTimestamp(run.timestamps.created_at)}</p>
                     <p style={itemMetaStyle}>Linked docs: {run.linked_document_ids.length}</p>
                     {run.notes && <p style={itemMetaStyle}>Notes: {run.notes}</p>}
@@ -545,7 +587,7 @@ export default function CaseDetailClient({
           <section style={sectionCardStyle}>
             <h2 style={sectionTitleStyle}>Available Workflows</h2>
             {workflows.length === 0 ? (
-              <div style={panelStyle}>Workflow metadata is unavailable.</div>
+              <div style={panelStyle}>No workflows available. Check that the runtime is running, or ask an admin to configure workflows.</div>
             ) : (
               <div style={stackStyle}>
                 {workflows.map((workflow) => (
@@ -711,6 +753,12 @@ const inputStyle: CSSProperties = {
 const textareaStyle: CSSProperties = {
   ...inputStyle,
   resize: "vertical",
+};
+
+const fieldErrorStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#dc2626",
+  marginTop: "-0.25rem",
 };
 
 const actionRowStyle: CSSProperties = {

@@ -19,7 +19,6 @@ from casegraph_agent_sdk.ingestion import (
     GeometrySource,
     PolygonArtifact,
     PolygonPoint,
-    TextBlockArtifact,
 )
 
 from app.review.models import PageRecord

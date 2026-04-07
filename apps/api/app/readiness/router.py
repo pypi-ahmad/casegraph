@@ -8,7 +8,6 @@ from sqlmodel import Session
 from casegraph_agent_sdk.readiness import (
     ChecklistItem,
     ChecklistResponse,
-    EvaluateChecklistRequest,
     GenerateChecklistRequest,
     ReadinessResponse,
     UpdateChecklistItemRequest,

@@ -39,7 +39,7 @@ const SCOPE_OPTIONS: Array<{ value: ScopeFilter; label: string }> = [
   { value: "due_soon", label: "Due soon" },
   { value: "overdue", label: "Overdue" },
   { value: "attention_needed", label: "Attention needed" },
-  { value: "escalation_ready", label: "Escalation ready" },
+  { value: "escalation_ready", label: "Needs escalation" },
   { value: "all", label: "All cases" },
 ];
 
@@ -51,7 +51,7 @@ const ASSIGNMENT_OPTIONS: Array<{ value: "" | AssignmentStatus; label: string }>
 ];
 
 const SLA_OPTIONS: Array<{ value: "" | SLAState; label: string }> = [
-  { value: "", label: "All SLA states" },
+  { value: "", label: "Any deadline status" },
   { value: "no_deadline", label: "No deadline" },
   { value: "on_track", label: "On track" },
   { value: "due_soon", label: "Due soon" },
@@ -59,10 +59,10 @@ const SLA_OPTIONS: Array<{ value: "" | SLAState; label: string }> = [
 ];
 
 const ESCALATION_OPTIONS: Array<{ value: "" | EscalationReadinessState; label: string }> = [
-  { value: "", label: "All escalation states" },
+  { value: "", label: "Any escalation status" },
   { value: "not_applicable", label: "Not applicable" },
   { value: "attention_needed", label: "Attention needed" },
-  { value: "escalation_ready", label: "Escalation ready" },
+  { value: "escalation_ready", label: "Needs escalation" },
 ];
 
 export default function WorkClient({ currentUser }: { currentUser: SessionUser }) {
@@ -260,7 +260,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
         </div>
 
         {loading ? (
-          <div style={panelStyle}>Loading work board...</div>
+          <div style={panelStyle}>Loading your work board…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -273,7 +273,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                 description="Cases currently assigned to the signed-in local operator."
                 count={myItems.length}
                 items={myItems.slice(0, 3)}
-                emptyMessage="No cases are currently assigned to you."
+                emptyMessage="No cases assigned to you yet. Check the unassigned queue or refresh to see updates."
                 onOpen={() => setScope("my_work")}
               />
               <FocusLane
@@ -281,7 +281,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                 description="Cases that are active but still not explicitly owned."
                 count={unassignedItems.length}
                 items={unassignedItems.slice(0, 3)}
-                emptyMessage="No unassigned cases are currently waiting in the pool."
+                emptyMessage="No unassigned cases waiting. New cases will appear here when they are created."
                 onOpen={() => setScope("unassigned")}
               />
               <FocusLane
@@ -289,7 +289,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                 description="Due-soon, overdue, or escalation-sensitive cases that need attention."
                 count={priorityItems.length}
                 items={priorityItems.slice(0, 3)}
-                emptyMessage="No due-soon, overdue, or escalation-flagged cases right now."
+                emptyMessage="No at-risk cases right now — all deadlines are on track."
                 onOpen={() => setScope("priority")}
               />
             </section>
@@ -360,7 +360,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                   </select>
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>SLA state</span>
+                  <span style={labelStyle}>Deadline status</span>
                   <select
                     value={slaState}
                     onChange={(event) => setSlaState(event.target.value as "" | SLAState)}
@@ -374,7 +374,7 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
                   </select>
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Escalation state</span>
+                  <span style={labelStyle}>Escalation</span>
                   <select
                     value={escalationState}
                     onChange={(event) => setEscalationState(event.target.value as "" | EscalationReadinessState)}
@@ -417,14 +417,14 @@ export default function WorkClient({ currentUser }: { currentUser: SessionUser }
               </div>
 
               {filteredItems.length === 0 ? (
-                <div style={panelStyle}>No cases match the current work filters.</div>
+                <div style={panelStyle}>No cases match the current filters. Try adjusting or clearing them to see more results.</div>
               ) : (
                 <div style={resultsGridStyle}>
                   {filteredItems.map((item) => (
                     <WorkStatusSnapshot
                       key={item.case_id}
                       status={item}
-                      label="Case Work Status"
+                      label="Case Status"
                       compact
                       actions={[
                         { href: `/cases/${item.case_id}`, label: "Open Case", tone: "primary" },
@@ -479,7 +479,7 @@ function FocusLane({
             <WorkStatusSnapshot
               key={item.case_id}
               status={item}
-              label="Work Snapshot"
+              label="Case Status"
               compact
               actions={[{ href: `/cases/${item.case_id}`, label: "Open Case", tone: "primary" }]}
             />

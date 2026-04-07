@@ -90,7 +90,7 @@ class TestTraceSpan:
         from app.observability.tracing import trace_span
 
         with pytest.raises(ValueError, match="boom"):
-            with trace_span(name="fail_span") as ctx:
+            with trace_span(name="fail_span") as _ctx:
                 raise ValueError("boom")
 
         # In no-op mode (Langfuse unconfigured), status tracking is skipped.

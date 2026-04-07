@@ -15,6 +15,7 @@ import type {
 } from "@casegraph/agent-sdk";
 
 import { fetchDomainPacks, fetchDomainPackDetail } from "@/lib/domains-api";
+import { stageLabel, caseStatusLabel, readinessLabel, titleCase } from "@/lib/display-labels";
 import {
   fetchOperatorQueue,
   fetchOperatorQueueSummary,
@@ -23,11 +24,11 @@ import {
 const STAGE_OPTIONS: Array<{ value: "" | CaseStage; label: string }> = [
   { value: "", label: "All stages" },
   { value: "intake", label: "Intake" },
-  { value: "document_review", label: "Document review" },
-  { value: "readiness_review", label: "Readiness review" },
-  { value: "awaiting_documents", label: "Awaiting documents" },
-  { value: "ready_for_next_step", label: "Ready for next step" },
-  { value: "closed_placeholder", label: "Closed placeholder" },
+  { value: "document_review", label: "Document Review" },
+  { value: "readiness_review", label: "Readiness Review" },
+  { value: "awaiting_documents", label: "Awaiting Documents" },
+  { value: "ready_for_next_step", label: "Ready" },
+  { value: "closed_placeholder", label: "Closed" },
 ];
 
 export default function OperatorQueueClient() {
@@ -156,7 +157,7 @@ export default function OperatorQueueClient() {
         </section>
 
         {loading ? (
-          <div style={panelStyle}>Loading operator queue...</div>
+          <div style={panelStyle}>Loading review queue…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -174,7 +175,7 @@ export default function OperatorQueueClient() {
               <div style={stageCountRowStyle}>
                 {summary.summary.stage_counts.map((item) => (
                   <span key={item.stage} style={stageCountBadgeStyle}>
-                    {item.stage.replace(/_/g, " ")}: {item.case_count}
+                    {stageLabel(item.stage)}: {item.case_count}
                   </span>
                 ))}
               </div>
@@ -202,14 +203,13 @@ function QueueCard({ item }: { item: ReviewQueueItem }) {
       <div style={cardHeaderStyle}>
         <div>
           <h2 style={cardTitleStyle}>{item.title}</h2>
-          <p style={cardIdStyle}>{item.case_id}</p>
         </div>
-        <span style={badgeStyle}>{item.current_stage.replace(/_/g, " ")}</span>
+        <span style={badgeStyle}>{stageLabel(item.current_stage)}</span>
       </div>
 
       <div style={metaGridStyle}>
-        <span>Case status</span><span>{item.case_status.replace(/_/g, " ")}</span>
-        <span>Readiness</span><span>{item.readiness_status?.replace(/_/g, " ") ?? "Not available"}</span>
+        <span>Case status</span><span>{caseStatusLabel(item.case_status)}</span>
+        <span>Readiness</span><span>{item.readiness_status ? readinessLabel(item.readiness_status) : "Not available"}</span>
         <span>Linked documents</span><span>{item.linked_document_count}</span>
         <span>Open action items</span><span>{item.open_action_count}</span>
         <span>Detected follow-ups</span><span>{item.detected_action_count}</span>
@@ -221,7 +221,7 @@ function QueueCard({ item }: { item: ReviewQueueItem }) {
       {item.attention_categories.length > 0 && (
         <div style={chipRowStyle}>
           {item.attention_categories.map((category) => (
-            <span key={category} style={chipStyle}>{category.replace(/_/g, " ")}</span>
+            <span key={category} style={chipStyle}>{titleCase(category)}</span>
           ))}
         </div>
       )}

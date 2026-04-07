@@ -32,7 +32,7 @@ export default function RuntimeClient() {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "Unable to load runtime data.",
+            err instanceof Error ? err.message : "Unable to load runtime data. Check that the API server is running.",
           );
         }
       } finally {
@@ -53,11 +53,11 @@ export default function RuntimeClient() {
           <p style={breadcrumbStyle}>Runtime</p>
           <h1 style={titleStyle}>Agents &amp; Workflows</h1>
           <p style={subtitleStyle}>
-            Registered agents and workflow definitions from the local agent
-            runtime. No business logic or real inference is implemented yet.
+            Registered agents and workflow definitions from your local agent
+            runtime.
           </p>
           <div style={{ padding: "0.6rem 1rem", borderRadius: "8px", backgroundColor: "#fef3c7", border: "1px solid #fde68a", color: "#92400e", fontSize: "0.85rem", marginTop: "0.75rem" }}>
-            <strong>Scaffolded module</strong> — This is a pass-through proxy to the agent-runtime service. All data shown here is fetched from <code>http://localhost:8100</code>. No logic, inference, or orchestration runs locally.
+            <strong>Live connection</strong> — Data on this page comes from your agent-runtime at <code>http://localhost:8100</code>.
           </div>
         </header>
 

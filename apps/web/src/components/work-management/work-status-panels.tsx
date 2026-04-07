@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
   AssignmentHistoryEntry,
@@ -42,7 +43,6 @@ export function WorkStatusSnapshot({
           <h3 style={{ ...snapshotTitleStyle, fontSize: compact ? "1rem" : "1.1rem" }}>
             {status.title}
           </h3>
-          <p style={snapshotMetaStyle}>{status.case_id}</p>
         </div>
         <div style={badgeRowStyle}>
           <span style={{ ...badgeStyle, ...assignmentBadgeTone(status.ownership.assignment_status) }}>
@@ -70,28 +70,30 @@ export function WorkStatusSnapshot({
       >
         <span>Owner</span>
         <span>{owner ? owner.display_name : "Unassigned"}</span>
-        <span>Assignment note</span>
-        <span>{status.ownership.note || "No assignment note recorded."}</span>
-        <span>Due date</span>
-        <span>{dueDate ? formatWorkTimestamp(dueDate.due_at) : "No deadline"}</span>
+        <span>Note</span>
+        <span>{status.ownership.note || "No note recorded."}</span>
+        <span>Deadline</span>
+        <span>{dueDate ? formatWorkTimestamp(dueDate.due_at) : "No deadline set"}</span>
         <span>Stage</span>
         <span>{formatLabel(status.current_stage)}</span>
         <span>Readiness</span>
         <span>{status.readiness_status ? formatLabel(status.readiness_status) : "Not evaluated"}</span>
         <span>Open actions</span>
         <span>{status.open_action_count}</span>
-        <span>Unresolved review items</span>
+        <span>Items needing review</span>
         <span>{status.unresolved_review_item_count}</span>
         {!compact && (
           <>
-            <span>Domain pack</span>
-            <span>{status.domain_pack_id ?? "Not linked"}</span>
+            <span>Domain</span>
+            <span>{status.domain_pack_id ? titleCase(status.domain_pack_id) : "Not linked"}</span>
             <span>Case type</span>
-            <span>{status.case_type_id ?? "Not linked"}</span>
-            <span>Release blocked</span>
-            <span>{status.release_blocked ? "Yes" : "No"}</span>
-            <span>Submission planning blocked</span>
-            <span>{status.submission_planning_blocked ? "Yes" : "No"}</span>
+            <span>{status.case_type_id ? titleCase(status.case_type_id) : "Not linked"}</span>
+            {(status.release_blocked || status.submission_planning_blocked) && (
+              <>
+                {status.release_blocked && <><span>Release</span><span style={{ color: "#b91c1c" }}>Blocked</span></>}
+                {status.submission_planning_blocked && <><span>Submission</span><span style={{ color: "#b91c1c" }}>Blocked</span></>}
+              </>
+            )}
           </>
         )}
         <span>Updated</span>
@@ -143,7 +145,7 @@ export function WorkloadSummaryCards({ summary }: { summary: WorkloadSummary }) 
       <SummaryCard label="Due soon" value={summary.due_soon_cases} />
       <SummaryCard label="Overdue" value={summary.overdue_cases} />
       <SummaryCard label="Attention needed" value={summary.attention_needed_cases} />
-      <SummaryCard label="Escalation ready" value={summary.escalation_ready_cases} />
+      <SummaryCard label="Needs escalation" value={summary.escalation_ready_cases} />
     </section>
   );
 }
@@ -162,7 +164,7 @@ export function AssignmentHistoryList({
         <span style={historyCountStyle}>{history.length} event(s)</span>
       </div>
       {history.length === 0 ? (
-        <div style={emptyPanelStyle}>No assignment changes have been recorded for this case yet.</div>
+        <div style={emptyPanelStyle}>No assignment changes yet. History will appear here when the case is assigned or reassigned.</div>
       ) : (
         <div style={historyStackStyle}>
           {history.map((entry) => {
@@ -214,7 +216,7 @@ export function toDateTimeLocal(value: string | null | undefined): string {
 }
 
 export function formatLabel(value: string): string {
-  return value.replace(/_/g, " ");
+  return titleCase(value);
 }
 
 function SummaryCard({ label, value }: { label: string; value: number }) {

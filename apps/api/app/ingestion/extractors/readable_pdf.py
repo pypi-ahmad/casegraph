@@ -11,7 +11,6 @@ from casegraph_agent_sdk.ingestion import (
     DocumentProcessingStatus,
     GeometrySource,
     IngestionMode,
-    IngestionModePreference,
     IngestionRequest,
     NormalizedExtractionOutput,
     PageArtifact,

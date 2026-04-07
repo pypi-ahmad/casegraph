@@ -17,7 +17,6 @@ from casegraph_agent_sdk.ingestion import (
     IngestionResult,
     IngestionResultSummary,
     NormalizedExtractionOutput,
-    PageArtifact,
     SourceFileMetadata,
 )
 

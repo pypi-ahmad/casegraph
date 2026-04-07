@@ -10,14 +10,9 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
 from casegraph_agent_sdk.domains import (
-    CaseDomainContext,
-    CaseTypeTemplateMetadata,
-    DomainCategory,
-    DomainPackCapabilities,
     DomainPackDetail,
     DomainPackListResponse,
     DomainPackMetadata,
-    Jurisdiction,
 )
 from casegraph_agent_sdk.cases import CreateCaseRequest
 

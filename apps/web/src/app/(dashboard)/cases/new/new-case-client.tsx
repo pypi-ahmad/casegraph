@@ -28,6 +28,7 @@ export default function NewCaseClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +53,7 @@ export default function NewCaseClient() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load data.");
+          setError(err instanceof Error ? err.message : "Unable to load form options. Check your network connection and refresh the page.");
         }
       } finally {
         if (!cancelled) {
@@ -70,17 +71,27 @@ export default function NewCaseClient() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const errors: Record<string, string> = {};
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setError("Case title is required.");
+      errors.title = "Case title is required.";
+    } else if (trimmedTitle.length < 3) {
+      errors.title = "Title must be at least 3 characters.";
+    }
+    if (summary.trim().length > 0 && summary.trim().length < 10) {
+      errors.summary = "Summary should be at least 10 characters or left blank.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+    setFieldErrors({});
 
     setSaving(true);
     setError(null);
     try {
       const created = await createCase({
-        title: trimmedTitle,
+        title: title.trim(),
         category: category.trim() || null,
         summary: summary.trim() || null,
         metadata: {},
@@ -90,7 +101,7 @@ export default function NewCaseClient() {
       });
       router.push(`/cases/${created.case_id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create case.");
+      setError(err instanceof Error ? err.message : "Unable to create case. Check the form fields and try again.");
     } finally {
       setSaving(false);
     }
@@ -131,11 +142,13 @@ export default function NewCaseClient() {
               <span style={labelStyle}>Title</span>
               <input
                 value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                style={inputStyle}
+                onChange={(event) => { setTitle(event.target.value); setFieldErrors((prev) => { const { title: _, ...rest } = prev; return rest; }); }}
+                onBlur={() => { if (title.trim().length > 0 && title.trim().length < 3) setFieldErrors((prev) => ({ ...prev, title: "Title must be at least 3 characters." })); }}
+                style={fieldErrors.title ? { ...inputStyle, borderColor: "#ef4444" } : inputStyle}
                 maxLength={160}
                 required
               />
+              {fieldErrors.title && <span style={fieldErrorStyle}>{fieldErrors.title}</span>}
             </label>
 
             <label style={fieldStyle}>
@@ -153,11 +166,13 @@ export default function NewCaseClient() {
               <span style={labelStyle}>Summary</span>
               <textarea
                 value={summary}
-                onChange={(event) => setSummary(event.target.value)}
-                style={textareaStyle}
+                onChange={(event) => { setSummary(event.target.value); setFieldErrors((prev) => { const { summary: _, ...rest } = prev; return rest; }); }}
+                onBlur={() => { if (summary.trim().length > 0 && summary.trim().length < 10) setFieldErrors((prev) => ({ ...prev, summary: "Summary should be at least 10 characters or left blank." })); }}
+                style={fieldErrors.summary ? { ...textareaStyle, borderColor: "#ef4444" } : textareaStyle}
                 rows={5}
                 maxLength={2000}
               />
+              {fieldErrors.summary && <span style={fieldErrorStyle}>{fieldErrors.summary}</span>}
             </label>
 
             <label style={fieldStyle}>
@@ -278,6 +293,12 @@ const inputStyle: CSSProperties = {
 const textareaStyle: CSSProperties = {
   ...inputStyle,
   resize: "vertical",
+};
+
+const fieldErrorStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#dc2626",
+  marginTop: "-0.25rem",
 };
 
 const actionRowStyle: CSSProperties = {

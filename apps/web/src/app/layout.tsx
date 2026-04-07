@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "CaseGraph",
+  title: {
+    default: "CaseGraph",
+    template: "%s — CaseGraph",
+  },
   description: "Case processing workspace with human oversight",
 };
 

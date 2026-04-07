@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
+
 import DocumentReviewClient from "./document-review-client";
+
+export const metadata: Metadata = { title: "Document Review" };
 
 interface Props {
   params: Promise<{ documentId: string }>;

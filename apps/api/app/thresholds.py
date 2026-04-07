@@ -14,7 +14,7 @@ from __future__ import annotations
 MIN_API_ROUTES: int = 140
 
 # ── SDK export floors ────────────────────────────────────────────────
-MIN_SDK_PYTHON_EXPORTS: int = 575
+MIN_SDK_PYTHON_EXPORTS: int = 591
 MIN_SDK_TS_EXPORTS: int = 575
 
 # ── Frontend floors ──────────────────────────────────────────────────

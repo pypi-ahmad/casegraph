@@ -13,12 +13,10 @@ from uuid import uuid4
 from sqlmodel import Session, desc, select
 
 from casegraph_agent_sdk.audit import ChangeSummary, FieldChangeRecord
-from casegraph_agent_sdk.cases import NormalizedOperationError
 from casegraph_agent_sdk.work_management import (
     AssignmentStatus,
     AssignmentHistoryEntry,
     AssignmentHistoryResponse,
-    AssignmentReasonPlaceholder,
     AssigneeReference,
     CaseAssignmentResponse,
     CaseSLAResponse,

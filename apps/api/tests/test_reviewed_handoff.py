@@ -291,7 +291,7 @@ class TestReviewedHandoffService:
         _create_checklist(session, case_id=case.case_id)
 
         service = ReviewedHandoffService(session)
-        snapshot = service.create_snapshot(case.case_id, CreateReviewedSnapshotRequest()).snapshot
+        service.create_snapshot(case.case_id, CreateReviewedSnapshotRequest())
 
         eligibility = service.get_handoff_eligibility(case.case_id)
         blocking_codes = [reason.code for reason in eligibility.eligibility.reasons if reason.blocking]

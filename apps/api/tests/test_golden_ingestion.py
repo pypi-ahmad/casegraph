@@ -27,8 +27,6 @@ from casegraph_agent_sdk.ingestion import (
     IngestionResultSummary,
     NormalizedExtractionOutput,
     PageArtifact,
-    PolygonArtifact,
-    PolygonPoint,
     SourceFileMetadata,
     TextBlockArtifact,
 )

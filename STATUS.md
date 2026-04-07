@@ -1,6 +1,6 @@
 # CaseGraph — Current HEAD Status
 
-> **Machine-generated** from live codebase on 2026-04-06 16:18 UTC.
+> **Machine-generated** from live codebase on 2026-04-07 14:08 UTC.
 > Re-generate: `cd apps/api && python ../../scripts/generate_status.py --write`
 > Validate: `pnpm validate`
 >
@@ -16,7 +16,7 @@
 | API modules | 27 |
 | API routes | 149 |
 | Module maturity | 8 stable · 16 implemented · 3 scaffolded · 0 planned |
-| SDK exports (Python) | 589 |
+| SDK exports (Python) | 591 |
 | SDK exports (TypeScript) | 595 |
 | API test files | 31 |
 | Frontend pages | 31 |
@@ -97,7 +97,7 @@ One rule enforced across all layers:
 - **Source of truth**: `packages/agent-sdk` (Python + TypeScript)
 - **Enforcement**: `scripts/check_contract_duplication.py` (Gate #7 in validate)
 - **Rule**: No class/type in `packages/agent-sdk` or `packages/workflows` may be redefined in `apps/api`, `apps/agent-runtime`, or `apps/web` without an explicit `# OVERRIDE:` comment
-- **Coverage**: 589 Python + 595 TypeScript shared names scanned
+- **Coverage**: 591 Python + 595 TypeScript shared names scanned
 
 ---
 

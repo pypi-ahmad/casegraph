@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 
@@ -17,6 +18,7 @@ import type {
 
 import { fetchCaseDetail } from "@/lib/cases-api";
 import { fetchPackets } from "@/lib/packets-api";
+import { shortRef, sourceModeLabel, titleCase } from "@/lib/display-labels";
 import {
   createSubmissionDraft,
   fetchSubmissionDraftDetail,
@@ -36,7 +38,7 @@ const APPROVAL_LABELS: Record<string, string> = {
 };
 
 function approvalLabel(status: string): string {
-  return APPROVAL_LABELS[status] ?? status.replace(/_/g, " ");
+  return APPROVAL_LABELS[status] ?? titleCase(status);
 }
 
 export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
@@ -126,10 +128,10 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
         note: draftNote.trim(),
       });
       setDraftNote("");
-      setMessage(response.result.message || "Submission draft created.");
+      setMessage(response.result.message || "Submission draft created. Review the field mappings below before approving.");
       await load(response.draft.draft_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to create submission draft.");
+      setMessage(err instanceof Error ? err.message : "Unable to create submission draft. Verify packet and target selections.");
     } finally {
       setWorking(false);
     }
@@ -141,7 +143,7 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
     try {
       setSelectedDraft(await fetchSubmissionDraftDetail(draftId));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to load submission draft detail.");
+      setMessage(err instanceof Error ? err.message : "Unable to load submission draft detail. Try selecting the draft again.");
     } finally {
       setWorking(false);
     }
@@ -153,11 +155,11 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
     setMessage(null);
     try {
       const response = await generateSubmissionPlan(selectedDraft.draft.draft_id, { dry_run: true });
-      setMessage(response.result.message || "Dry-run plan generated.");
+      setMessage(response.result.message || "Automation preview generated. Review the plan steps before approving.");
       setSelectedDraft(await fetchSubmissionDraftDetail(selectedDraft.draft.draft_id));
       setDrafts(await refreshDraftList(caseId));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to generate automation plan.");
+      setMessage(err instanceof Error ? err.message : "Unable to generate automation plan. The draft may need more mappings resolved first.");
     } finally {
       setWorking(false);
     }
@@ -174,11 +176,11 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
         approved_by: approvedBy.trim(),
         approval_note: approvalNote.trim(),
       });
-      setMessage(response.result.message || "Approval metadata updated.");
+      setMessage(response.result.message || "Approval status updated.");
       setSelectedDraft(await fetchSubmissionDraftDetail(selectedDraft.draft.draft_id));
       setDrafts(await refreshDraftList(caseId));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to update approval metadata.");
+      setMessage(err instanceof Error ? err.message : "Unable to update approval metadata. Check operator identity and try again.");
     } finally {
       setWorking(false);
     }
@@ -201,15 +203,17 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
             <p style={breadcrumbStyle}>Submission Drafts</p>
             <h1 style={titleStyle}>{caseTitle || "Submission Preparation"}</h1>
             <p style={subtitleStyle}>
-              Prepare and review submissions for this case. All submissions require your approval before processing.
+              Prepare and review submissions for this case. Nothing is sent until you approve it.
             </p>
           </div>
         </header>
 
+        <AiDisclosureBanner />
+
         {message && <div style={panelStyle}>{message}</div>}
 
         {loading ? (
-          <div style={panelStyle}>Loading submission drafts workspace...</div>
+          <div style={panelStyle}>Loading submission drafts…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -227,7 +231,7 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
                     <option value="">Select packet</option>
                     {packets.map((packet) => (
                       <option key={packet.packet_id} value={packet.packet_id}>
-                          {packet.packet_id.slice(0, 12)}… • {formatTimestamp(packet.generated_at)} • {describeSourceMode(packet.source_mode)}
+                          Packet {packets.indexOf(packet) + 1} • {formatTimestamp(packet.generated_at)} • {describeSourceMode(packet.source_mode)}
                       </option>
                     ))}
                   </select>
@@ -291,16 +295,13 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
                       onClick={() => handleSelectDraft(draft.draft_id)}
                     >
                       <div style={itemHeaderStyle}>
-                        <strong>{draft.submission_target_id.replace(/_/g, " ")}</strong>
+                        <strong>{titleCase(draft.submission_target_id)}</strong>
                         <span style={{ ...badgeStyle, backgroundColor: statusColor(draft.status) }}>
-                          {draft.status.replace(/_/g, " ")}
+                          {titleCase(draft.status)}
                         </span>
                       </div>
                       <div style={metaGridStyle}>
-                        <span>Draft ID</span><span style={monoStyle}>{draft.draft_id.slice(0, 12)}…</span>
-                        <span>Packet</span><span style={monoStyle}>{draft.packet_id.slice(0, 12)}…</span>
-                        <span>Source mode</span><span>{describeSourceMode(draft.source_mode)}</span>
-                        <span>Reviewed snapshot</span><span style={monoStyle}>{draft.source_reviewed_snapshot_id ? `${draft.source_reviewed_snapshot_id.slice(0, 12)}…` : "None"}</span>
+                        <span>Data source</span><span>{describeSourceMode(draft.source_mode)}</span>
                         <span>Approval</span><span>{approvalLabel(draft.approval_status)}</span>
                         <span>Mappings</span><span>{draft.mapping_count}</span>
                         <span>Needs review</span><span>{draft.unresolved_mapping_count}</span>
@@ -324,15 +325,13 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
                   </div>
                   <div style={metaGridStyle}>
                     <span>Target</span><span>{selectedDraft.target.display_name}</span>
-                    <span>Draft status</span><span>{selectedDraft.draft.status.replace(/_/g, " ")}</span>
+                    <span>Draft status</span><span>{titleCase(selectedDraft.draft.status)}</span>
                     <span>Approval</span><span>{approvalLabel(selectedDraft.approval.approval_status)}</span>
-                    <span>Packet</span><span style={monoStyle}>{selectedDraft.draft.packet_id.slice(0, 12)}…</span>
-                    <span>Source mode</span><span>{describeSourceMode(selectedDraft.source_metadata.source_mode)}</span>
-                    <span>Reviewed snapshot</span><span style={monoStyle}>{selectedDraft.source_metadata.source_reviewed_snapshot_id || "None"}</span>
-                    <span>Snapshot sign-off</span><span>{selectedDraft.source_metadata.source_snapshot_signoff_status.replace(/_/g, " ")}</span>
-                    <span>Domain pack</span><span>{selectedDraft.source_metadata.domain_pack_id ?? "None"}</span>
-                    <span>Case type</span><span>{selectedDraft.source_metadata.case_type_id ?? "None"}</span>
-                    <span>Readiness</span><span>{selectedDraft.source_metadata.readiness_status?.replace(/_/g, " ") ?? "Not evaluated"}</span>
+                    <span>Data source</span><span>{describeSourceMode(selectedDraft.source_metadata.source_mode)}</span>
+                    <span>Snapshot sign-off</span><span>{titleCase(selectedDraft.source_metadata.source_snapshot_signoff_status)}</span>
+                    <span>Domain pack</span><span>{selectedDraft.source_metadata.domain_pack_id ? titleCase(selectedDraft.source_metadata.domain_pack_id) : "None"}</span>
+                    <span>Case type</span><span>{selectedDraft.source_metadata.case_type_id ? titleCase(selectedDraft.source_metadata.case_type_id) : "None"}</span>
+                    <span>Readiness</span><span>{selectedDraft.source_metadata.readiness_status ? titleCase(selectedDraft.source_metadata.readiness_status) : "Not evaluated"}</span>
                     <span>Documents</span><span>{selectedDraft.source_metadata.linked_document_count}</span>
                     <span>Extractions</span><span>{selectedDraft.source_metadata.extraction_count}</span>
                     <span>Candidate sources</span><span>{selectedDraft.source_metadata.candidate_source_count}</span>
@@ -370,12 +369,11 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
                       </select>
                     </label>
                     <label style={fieldStyle}>
-                      <span style={labelStyle}>Operator Identifier</span>
+                      <span style={labelStyle}>Operator</span>
                       <input
-                        value={approvedBy}
-                        onChange={(event) => setApprovedBy(event.target.value)}
-                        style={inputStyle}
-                        placeholder="Required when approving or rejecting"
+                        value={currentUser.name || currentUser.email || approvedBy}
+                        readOnly
+                        style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }}
                       />
                     </label>
                     <label style={{ ...fieldStyle, minWidth: "280px" }}>
@@ -394,12 +392,12 @@ export default function SubmissionDraftsClient({ caseId, currentUser }: { caseId
                 </section>
 
                 <section style={sectionCardStyle}>
-                  <h2 style={sectionTitleStyle}>Dry-Run Automation Plan</h2>
+                  <h2 style={sectionTitleStyle}>Automation Preview</h2>
                   {selectedDraft.plan ? (
                     <PlanPanel plan={selectedDraft.plan} />
                   ) : (
                     <div style={subtlePanelStyle}>
-                      No dry-run plan has been generated for this draft yet.
+                      No automation preview has been generated for this draft yet.
                     </div>
                   )}
                 </section>
@@ -418,14 +416,14 @@ function MappingCard({ mapping }: { mapping: SubmissionMappingFieldDefinition })
       <div style={itemHeaderStyle}>
         <strong>{mapping.target_field.display_label || mapping.target_field.field_name}</strong>
         <span style={{ ...badgeStyle, backgroundColor: statusColor(mapping.status) }}>
-          {mapping.status.replace(/_/g, " ")}
+          {titleCase(mapping.status)}
         </span>
       </div>
       <div style={metaGridStyle}>
         <span>Section</span><span>{mapping.target_field.target_section}</span>
         <span>Required</span><span>{mapping.target_field.required ? "Yes" : "No"}</span>
         <span>Preview</span><span>{mapping.value_preview?.text_value || "No value available"}</span>
-        <span>Source</span><span style={monoStyle}>{mapping.source_reference?.source_path || "Unresolved"}</span>
+        <span>Source</span><span>{mapping.source_reference?.source_path || "Unresolved"}</span>
       </div>
       {mapping.notes.length > 0 && mapping.notes.map((note) => (
         <p key={note} style={metaTextStyle}>{note}</p>
@@ -439,9 +437,9 @@ function PlanPanel({ plan }: { plan: AutomationPlan }) {
     <div style={stackStyle}>
       <div style={subtlePanelStyle}>
         <div style={metaGridStyle}>
-          <span>Plan status</span><span>{plan.status.replace(/_/g, " ")}</span>
-          <span>Source mode</span><span>{describeSourceMode(plan.source_mode)}</span>
-          <span>Reviewed snapshot</span><span style={monoStyle}>{plan.source_reviewed_snapshot_id || "None"}</span>
+          <span>Plan status</span><span>{titleCase(plan.status)}</span>
+          <span>Data source</span><span>{describeSourceMode(plan.source_mode)}</span>
+          <span>Approved review</span><span>{shortRef(plan.source_reviewed_snapshot_id) || "None"}</span>
           <span>Generated</span><span>{formatTimestamp(plan.generated_at)}</span>
           <span>Total steps</span><span>{plan.dry_run_summary.total_steps}</span>
           <span>Future automation</span><span>{plan.dry_run_summary.future_automation_steps}</span>
@@ -458,28 +456,26 @@ function PlanPanel({ plan }: { plan: AutomationPlan }) {
             <strong>{step.step_index}. {step.title}</strong>
             <div style={badgeRowStyle}>
               <span style={{ ...badgeStyle, backgroundColor: executionModeColor(step.execution_mode) }}>
-                {step.execution_mode.replace(/_/g, " ")}
+                {titleCase(step.execution_mode)}
               </span>
               <span style={{ ...badgeStyle, backgroundColor: statusColor(step.status) }}>
-                {step.status.replace(/_/g, " ")}
+                {titleCase(step.status)}
               </span>
             </div>
           </div>
           <p style={itemTextStyle}>{step.description}</p>
           <div style={metaGridStyle}>
-            <span>Step type</span><span>{step.step_type.replace(/_/g, " ")}</span>
-            <span>Target ref</span><span style={monoStyle}>{step.target_reference || "-"}</span>
+            <span>Step type</span><span>{titleCase(step.step_type)}</span>
+            <span>Target ref</span><span>{step.target_reference || "-"}</span>
             <span>Backend</span><span>{step.backend_id ?? "None"}</span>
             <span>Tool</span><span>{step.tool_id ?? "None"}</span>
             <span>Checkpoint required</span><span>{step.checkpoint_required ? "Yes" : "No"}</span>
             {step.checkpoint_reason && <><span>Checkpoint reason</span><span>{step.checkpoint_reason}</span></>}
-            {step.mapping_id && <><span>Mapping</span><span style={monoStyle}>{step.mapping_id.slice(0, 12)}…</span></>}
-            {step.related_document_id && <><span>Document</span><span style={monoStyle}>{step.related_document_id.slice(0, 12)}…</span></>}
           </div>
           {step.fallback_hint && (
             <div style={{ ...subtlePanelStyle, marginTop: "0.75rem" }}>
               <div style={metaGridStyle}>
-                <span>Fallback mode</span><span>{step.fallback_hint.recommended_mode.replace(/_/g, " ")}</span>
+                <span>Fallback mode</span><span>{titleCase(step.fallback_hint.recommended_mode)}</span>
                 <span>Providers</span><span>{step.fallback_hint.supported_provider_ids.join(", ") || "None"}</span>
               </div>
               <p style={metaTextStyle}>{step.fallback_hint.reason}</p>
@@ -508,7 +504,7 @@ function formatTimestamp(value: string): string {
 }
 
 function describeSourceMode(value: string): string {
-  return value === "reviewed_snapshot" ? "Reviewed snapshot" : "Live case state";
+  return sourceModeLabel(value);
 }
 
 function statusColor(status: string): string {

@@ -40,6 +40,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
   const [slaWindowHours, setSlaWindowHours] = useState("24");
   const [slaNote, setSlaNote] = useState("");
   const [showSlaAdvanced, setShowSlaAdvanced] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function loadWorkData(showLoading = true) {
     if (showLoading) {
@@ -68,7 +69,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
       );
       setSlaNote(statusResponse.work_status.sla_target.due_date?.note ?? "");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load case work management.");
+      setError(err instanceof Error ? err.message : "Unable to load work management data. Try refreshing the page.");
     } finally {
       if (showLoading) {
         setLoading(false);
@@ -83,9 +84,10 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
   async function handleAssignmentSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedAssigneeId) {
-      setError("Select a local operator before saving assignment.");
+      setFieldErrors((prev) => ({ ...prev, assignee: "Select a local operator before saving assignment." }));
       return;
     }
+    setFieldErrors((prev) => { const { assignee: _, ...rest } = prev; return rest; });
 
     setWorking(true);
     setMessage(null);
@@ -100,7 +102,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
       setMessage(response.result.message || "Case assignment updated.");
       await loadWorkData(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update case assignment.");
+      setError(err instanceof Error ? err.message : "Unable to update assignment. Verify the selected operator and try again.");
     } finally {
       setWorking(false);
     }
@@ -120,7 +122,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
       setMessage(response.result.message || "Case assignment cleared.");
       await loadWorkData(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to clear case assignment.");
+      setError(err instanceof Error ? err.message : "Unable to clear assignment. The case may have been modified. Try refreshing.");
     } finally {
       setWorking(false);
     }
@@ -129,15 +131,16 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
   async function handleSlaSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!slaDueAt) {
-      setError("Provide a due date before saving deadline metadata.");
+      setFieldErrors((prev) => ({ ...prev, dueDate: "Provide a due date before saving deadline metadata." }));
       return;
     }
 
     const parsed = new Date(slaDueAt);
     if (Number.isNaN(parsed.getTime())) {
-      setError("Due date must be a valid local date/time.");
+      setFieldErrors((prev) => ({ ...prev, dueDate: "Due date must be a valid local date/time." }));
       return;
     }
+    setFieldErrors((prev) => { const { dueDate: _, ...rest } = prev; return rest; });
 
     setWorking(true);
     setMessage(null);
@@ -154,7 +157,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
       setMessage(response.result.message || "Case deadline updated.");
       await loadWorkData(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update case deadline.");
+      setError(err instanceof Error ? err.message : "Unable to save deadline. Confirm the due date is valid and try again.");
     } finally {
       setWorking(false);
     }
@@ -174,7 +177,7 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
       setMessage(response.result.message || "Case deadline cleared.");
       await loadWorkData(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to clear case deadline.");
+      setError(err instanceof Error ? err.message : "Unable to clear deadline. Try refreshing the page and retrying.");
     } finally {
       setWorking(false);
     }
@@ -219,8 +222,8 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
                     <span style={labelStyle}>Assignee</span>
                     <select
                       value={selectedAssigneeId}
-                      onChange={(event) => setSelectedAssigneeId(event.target.value)}
-                      style={inputStyle}
+                      onChange={(event) => { setSelectedAssigneeId(event.target.value); setFieldErrors((prev) => { const { assignee: _, ...rest } = prev; return rest; }); }}
+                      style={fieldErrors.assignee ? { ...inputStyle, borderColor: "#ef4444" } : inputStyle}
                     >
                       <option value="">Select local operator</option>
                       {workStatus.available_assignees.map((assignee) => (
@@ -229,9 +232,10 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.assignee && <span style={fieldErrorStyle}>{fieldErrors.assignee}</span>}
                   </label>
                   <label style={fieldStyle}>
-                    <span style={labelStyle}>Assignment note</span>
+                    <span style={labelStyle}>Note</span>
                     <input
                       value={assignmentNote}
                       onChange={(event) => setAssignmentNote(event.target.value)}
@@ -262,49 +266,20 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
               </section>
 
               <section style={subsectionCardStyle}>
-                <h3 style={subsectionTitleStyle}>Deadline / SLA</h3>
+                <h3 style={subsectionTitleStyle}>Deadline</h3>
                 <form onSubmit={handleSlaSubmit} style={formStyle}>
                   <label style={fieldStyle}>
                     <span style={labelStyle}>Due date</span>
                     <input
                       type="datetime-local"
                       value={slaDueAt}
-                      onChange={(event) => setSlaDueAt(event.target.value)}
-                      style={inputStyle}
+                      onChange={(event) => { setSlaDueAt(event.target.value); setFieldErrors((prev) => { const { dueDate: _, ...rest } = prev; return rest; }); }}
+                      style={fieldErrors.dueDate ? { ...inputStyle, borderColor: "#ef4444" } : inputStyle}
                     />
+                    {fieldErrors.dueDate && <span style={fieldErrorStyle}>{fieldErrors.dueDate}</span>}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowSlaAdvanced((prev) => !prev)}
-                    style={{ background: "none", border: "none", color: "#0d6efd", cursor: "pointer", fontSize: "0.82rem", padding: "0.25rem 0", textAlign: "left" }}
-                  >
-                    {showSlaAdvanced ? "Hide advanced options ▾" : "Advanced options ▸"}
-                  </button>
-                  {showSlaAdvanced && (
-                    <>
-                      <label style={fieldStyle}>
-                        <span style={labelStyle}>Policy identifier</span>
-                        <input
-                          value={slaPolicyId}
-                          onChange={(event) => setSlaPolicyId(event.target.value)}
-                          style={inputStyle}
-                          placeholder="local-default"
-                        />
-                      </label>
-                      <label style={fieldStyle}>
-                        <span style={labelStyle}>Due-soon window (hours)</span>
-                        <input
-                          type="number"
-                          min={1}
-                          value={slaWindowHours}
-                          onChange={(event) => setSlaWindowHours(event.target.value)}
-                          style={inputStyle}
-                        />
-                      </label>
-                    </>
-                  )}
                   <label style={fieldStyle}>
-                    <span style={labelStyle}>Deadline note</span>
+                    <span style={labelStyle}>Note</span>
                     <input
                       value={slaNote}
                       onChange={(event) => setSlaNote(event.target.value)}
@@ -312,6 +287,38 @@ export default function CaseWorkManagementSection({ caseId, currentUser }: Props
                       placeholder="Why this due date matters"
                     />
                   </label>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSlaAdvanced((v) => !v)}
+                    style={disclosureButtonStyle}
+                  >
+                    {showSlaAdvanced ? "Hide advanced options" : "Advanced options"}
+                  </button>
+                  {showSlaAdvanced && (
+                    <div style={advancedPanelStyle}>
+                      <label style={fieldStyle}>
+                        <span style={labelStyle}>Policy identifier</span>
+                        <input
+                          value={slaPolicyId}
+                          onChange={(event) => setSlaPolicyId(event.target.value)}
+                          style={inputStyle}
+                          placeholder="Optional — leave blank for default"
+                        />
+                      </label>
+                      <label style={fieldStyle}>
+                        <span style={labelStyle}>"Due soon" warning window (hours)</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={slaWindowHours}
+                          onChange={(event) => setSlaWindowHours(event.target.value)}
+                          style={inputStyle}
+                        />
+                      </label>
+                    </div>
+                  )}
+
                   <div style={buttonRowStyle}>
                     <button
                       type="submit"
@@ -432,6 +439,12 @@ const inputStyle: CSSProperties = {
   color: "#102033",
 };
 
+const fieldErrorStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#dc2626",
+  marginTop: "-0.25rem",
+};
+
 const buttonRowStyle: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
@@ -465,6 +478,26 @@ const panelStyle: CSSProperties = {
   backgroundColor: "#f8fafc",
   color: "#334155",
   marginBottom: "1rem",
+};
+
+const disclosureButtonStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "#64748b",
+  fontSize: "0.82rem",
+  cursor: "pointer",
+  padding: 0,
+  textDecoration: "underline",
+  textAlign: "left" as const,
+};
+
+const advancedPanelStyle: CSSProperties = {
+  display: "grid",
+  gap: "0.85rem",
+  padding: "0.75rem",
+  borderRadius: "10px",
+  border: "1px dashed #cbd5e1",
+  backgroundColor: "#f8fafc",
 };
 
 const errorPanelStyle: CSSProperties = {

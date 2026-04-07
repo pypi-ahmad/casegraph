@@ -17,6 +17,7 @@ import {
   ingestDocument,
 } from "@/lib/documents-api";
 import { fetchDocumentsList } from "@/lib/review-api";
+import { titleCase } from "@/lib/display-labels";
 
 const MODE_OPTIONS: Array<{ value: IngestionModePreference; label: string }> = [
   { value: "auto", label: "Auto" },
@@ -38,6 +39,7 @@ export default function DocumentIngestionClient() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<IngestionResult | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [documents, setDocuments] = useState<IngestionResultSummary[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
@@ -90,16 +92,25 @@ export default function DocumentIngestionClient() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const errors: Record<string, string> = {};
     if (!selectedFile) {
-      setSubmitError("Choose a local PDF or image file before submitting.");
+      errors.file = "Choose a local PDF or image file before submitting.";
+    } else if (selectedFile.size > 50 * 1024 * 1024) {
+      errors.file = "File size must be under 50 MB.";
+    } else if (selectedFile.size === 0) {
+      errors.file = "Selected file appears to be empty.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+    setFieldErrors({});
 
     setSubmitting(true);
     setSubmitError(null);
 
     try {
-      const response = await ingestDocument(selectedFile, {
+      const response = await ingestDocument(selectedFile!, {
         mode,
         ocrEnabled,
       });
@@ -108,7 +119,7 @@ export default function DocumentIngestionClient() {
     } catch (error) {
       setResult(null);
       setSubmitError(
-        error instanceof Error ? error.message : "Unable to process document. Please try again.",
+        error instanceof Error ? error.message : "Unable to process document. Check that the file is a valid PDF or image and try again.",
       );
     } finally {
       setSubmitting(false);
@@ -127,7 +138,7 @@ export default function DocumentIngestionClient() {
         </header>
 
         <section style={panelStyle}>
-          <h2 style={sectionTitleStyle}>Submit Document</h2>
+          <h2 style={sectionTitleStyle}>Upload Document</h2>
           <form onSubmit={handleSubmit} style={formStyle}>
             <label style={fieldStyle}>
               <span style={fieldLabelStyle}>Local file</span>
@@ -137,13 +148,15 @@ export default function DocumentIngestionClient() {
                 onChange={(event) => {
                   const file = event.target.files?.[0] ?? null;
                   setSelectedFile(file);
+                  setFieldErrors((prev) => { const { file: _, ...rest } = prev; return rest; });
                 }}
-                style={inputStyle}
+                style={fieldErrors.file ? { ...inputStyle, borderColor: "#ef4444" } : inputStyle}
               />
+              {fieldErrors.file && <span style={fieldErrorStyle}>{fieldErrors.file}</span>}
             </label>
 
             <label style={fieldStyle}>
-              <span style={fieldLabelStyle}>Requested mode</span>
+              <span style={fieldLabelStyle}>Processing mode</span>
               <select
                 value={mode}
                 onChange={(event) => {
@@ -168,7 +181,7 @@ export default function DocumentIngestionClient() {
                 }}
               />
               <span>
-                Enable OCR capability for scanned PDFs and images.
+              Enable OCR for scanned PDFs and images.
               </span>
             </label>
 
@@ -177,8 +190,8 @@ export default function DocumentIngestionClient() {
                 {submitting ? "Uploading…" : "Upload Document"}
               </button>
               <span style={helperTextStyle}>
-                OCR-enabled modes require the checkbox above. Auto mode only uses
-                OCR when the file appears image-based and OCR is enabled.
+                Auto mode detects the file type automatically. Enable OCR above
+                for scanned documents or images with text.
               </span>
             </div>
           </form>
@@ -192,12 +205,12 @@ export default function DocumentIngestionClient() {
             onClick={() => setShowCapabilities((prev) => !prev)}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, width: "100%", textAlign: "left" }}
           >
-            <h2 style={sectionTitleStyle}>{showCapabilities ? "Current Capabilities ▾" : "Current Capabilities ▸"}</h2>
+            <h2 style={sectionTitleStyle}>{showCapabilities ? "Technical Details ▾" : "Technical Details ▸"}</h2>
           </button>
           {showCapabilities && (
             <>
               {capabilitiesLoading ? (
-                <div style={mutedPanelStyle}>Loading capabilities...</div>
+                <div style={mutedPanelStyle}>Loading…</div>
               ) : capabilitiesError ? (
                 <div style={errorPanelStyle}>{capabilitiesError}</div>
               ) : capabilities ? (
@@ -206,7 +219,7 @@ export default function DocumentIngestionClient() {
                 {capabilities.modes.map((capability) => (
                   <article key={capability.mode} style={cardStyle}>
                     <div style={cardHeaderRowStyle}>
-                      <h3 style={cardTitleStyle}>{capability.mode}</h3>
+                      <h3 style={cardTitleStyle}>{titleCase(capability.mode)}</h3>
                       <span
                         style={{
                           ...statusPillStyle,
@@ -252,10 +265,9 @@ export default function DocumentIngestionClient() {
           <section style={{ ...panelStyle, marginTop: "1rem" }}>
             <h2 style={sectionTitleStyle}>Latest Result</h2>
             <div style={summaryGridStyle}>
-              <SummaryItem label="Document ID" value={result.summary.document_id} />
-              <SummaryItem label="Status" value={result.summary.status} />
-              <SummaryItem label="Requested Mode" value={result.summary.requested_mode} />
-              <SummaryItem label="Resolved Mode" value={result.summary.resolved_mode} />
+              <SummaryItem label="Status" value={titleCase(result.summary.status)} />
+              <SummaryItem label="Selected Mode" value={titleCase(result.summary.requested_mode)} />
+              <SummaryItem label="Mode Used" value={titleCase(result.summary.resolved_mode)} />
               <SummaryItem label="Extractor" value={result.summary.extractor_name ?? "none"} />
               <SummaryItem
                 label="Pages"
@@ -266,11 +278,11 @@ export default function DocumentIngestionClient() {
                 value={String(result.summary.text_block_count)}
               />
               <SummaryItem
-                label="Geometry"
-                value={result.summary.geometry_present ? "present" : "none"}
+                label="Layout Data"
+                value={result.summary.geometry_present ? "detected" : "none"}
               />
               <SummaryItem
-                label="Geometry Sources"
+                label="Layout Sources"
                 value={
                   result.summary.geometry_sources.length > 0
                     ? result.summary.geometry_sources.join(", ")
@@ -300,7 +312,7 @@ export default function DocumentIngestionClient() {
                 </div>
 
                 <h3 style={{ ...sectionTitleStyle, marginTop: "1.5rem" }}>
-                  Page Metadata
+                  Page Details
                 </h3>
                 <div style={pageListStyle}>
                   {result.output.pages.map((page) => (
@@ -314,11 +326,11 @@ export default function DocumentIngestionClient() {
 
         {/* Persisted documents list */}
         <section style={{ ...panelStyle, marginTop: "1rem" }}>
-          <h2 style={sectionTitleStyle}>Persisted Documents</h2>
+          <h2 style={sectionTitleStyle}>Your Documents</h2>
           {documentsLoading ? (
-            <div style={mutedPanelStyle}>Loading documents...</div>
+            <div style={mutedPanelStyle}>Loading your documents…</div>
           ) : documents.length === 0 ? (
-            <div style={mutedPanelStyle}>No documents ingested yet.</div>
+            <div style={mutedPanelStyle}>No documents uploaded yet. Use the form above to upload your first document.</div>
           ) : (
             <div style={pageListStyle}>
               {documents.map((doc) => (
@@ -334,16 +346,13 @@ export default function DocumentIngestionClient() {
                           doc.status === "completed" ? "#166534" : "#9f1239",
                       }}
                     >
-                      {doc.status}
+                      {titleCase(doc.status)}
                     </span>
                   </div>
                   <p style={cardMetaStyle}>
-                    mode: {doc.resolved_mode} · pages: {doc.page_count} ·
+                    mode: {titleCase(doc.resolved_mode)} · pages: {doc.page_count} ·
                     blocks: {doc.text_block_count}
                     {doc.geometry_present ? " · geometry" : ""}
-                  </p>
-                  <p style={{ ...cardMetaStyle, wordBreak: "break-all" }}>
-                    {doc.document_id}
                   </p>
                   {doc.status === "completed" && (
                     <Link
@@ -469,6 +478,12 @@ const inputStyle: CSSProperties = {
   border: "1px solid #cbd5e1",
   borderRadius: "12px",
   backgroundColor: "#ffffff",
+};
+
+const fieldErrorStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#dc2626",
+  marginTop: "-0.25rem",
 };
 
 const selectStyle: CSSProperties = {

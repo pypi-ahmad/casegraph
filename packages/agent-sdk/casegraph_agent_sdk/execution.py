@@ -21,7 +21,6 @@ from casegraph_agent_sdk.submissions import (
     AutomationPlanId,
     ExecutionGuardrailMetadata,
     NormalizedOperationResult,
-    NormalizedResultIssue,
     SubmissionDraftId,
     SubmissionDraftSummary,
 )

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
@@ -20,6 +21,7 @@ import type {
 } from "@casegraph/agent-sdk";
 
 import { fetchCaseDetail } from "@/lib/cases-api";
+import { readinessLabel, shortRef, titleCase } from "@/lib/display-labels";
 import {
   createCommunicationDraft,
   fetchCommunicationDraftDetail,
@@ -40,7 +42,7 @@ const DRAFT_STATUS_LABELS: Record<string, string> = {
 };
 
 function draftStatusLabel(status: string): string {
-  return DRAFT_STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+  return DRAFT_STATUS_LABELS[status] ?? titleCase(status);
 }
 
 export default function CommunicationDraftsClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
@@ -64,6 +66,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
   const [providerId, setProviderId] = useState("openai");
   const [modelId, setModelId] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [showProviderFields, setShowProviderFields] = useState(false);
   const [generationNote, setGenerationNote] = useState("");
   const [reviewStatus, setReviewStatus] = useState<DraftStatusChoice>("needs_human_review");
   const [reviewedBy, setReviewedBy] = useState(currentUser.id);
@@ -188,10 +191,10 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
         note: generationNote.trim(),
       });
       setGenerationNote("");
-      setMessage(response.result.message || "Communication draft created.");
+      setMessage(response.result.message || "Draft created. Review it below and update the status when ready.");
       await load(response.draft.draft_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to create communication draft.");
+      setMessage(err instanceof Error ? err.message : "Unable to create communication draft. Check template selection and provider credentials.");
     } finally {
       setWorking(false);
     }
@@ -203,7 +206,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
     try {
       setSelectedDraft(await fetchCommunicationDraftDetail(draftId));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to load communication draft detail.");
+      setMessage(err instanceof Error ? err.message : "Unable to load communication draft detail. Try selecting the draft again.");
     } finally {
       setWorking(false);
     }
@@ -220,11 +223,11 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
         reviewed_by: reviewedBy.trim(),
         review_notes: reviewNotes.trim(),
       });
-      setMessage(response.result.message || "Communication draft review metadata updated.");
+      setMessage(response.result.message || "Review status updated.");
       setSelectedDraft(await fetchCommunicationDraftDetail(selectedDraft.draft.draft_id));
       setDrafts(await refreshDraftList(caseId));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to update communication draft review metadata.");
+      setMessage(err instanceof Error ? err.message : "Unable to update draft review metadata. Try refreshing and resubmitting.");
     } finally {
       setWorking(false);
     }
@@ -255,15 +258,17 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
             <p style={breadcrumbStyle}>Communication Drafts</p>
             <h1 style={titleStyle}>{caseTitle || "Communication Drafts"}</h1>
             <p style={subtitleStyle}>
-              Draft and review communications for this case. All AI-generated content requires your review before use.
+              Draft and review communications for this case. AI writes the first version; you decide what gets sent.
             </p>
           </div>
         </header>
 
+        <AiDisclosureBanner />
+
         {message && <div style={panelStyle}>{message}</div>}
 
         {loading ? (
-          <div style={panelStyle}>Loading communication drafts workspace...</div>
+          <div style={panelStyle}>Loading communication drafts…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -287,66 +292,65 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                   </select>
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Strategy</span>
+                  <span style={labelStyle}>Drafting Approach</span>
                   <select
                     value={strategy}
                     onChange={(event) => setStrategy(event.target.value as typeof strategy)}
                     style={inputStyle}
                   >
-                    <option value="deterministic_template_only">Deterministic template only</option>
-                    <option value="provider_assisted_draft">Provider-assisted wording</option>
+                    <option value="deterministic_template_only">Template only (no AI)</option>
+                    <option value="provider_assisted_draft">AI-assisted wording</option>
                   </select>
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Operator Identifier</span>
+                  <span style={labelStyle}>Operator</span>
                   <input
-                    value={operatorId}
-                    onChange={(event) => setOperatorId(event.target.value)}
-                    style={inputStyle}
-                    placeholder="Optional operator identifier"
+                    value={currentUser.name || currentUser.email || operatorId}
+                    readOnly
+                    style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }}
                   />
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Packet Reference</span>
+                  <span style={labelStyle}>Export Package</span>
                   <select
                     value={selectedPacketId}
                     onChange={(event) => setSelectedPacketId(event.target.value)}
                     style={inputStyle}
                   >
-                    <option value="">Latest packet or none</option>
+                    <option value="">Latest export or none</option>
                     {packets.map((packet) => (
                       <option key={packet.packet_id} value={packet.packet_id}>
-                        {packet.packet_id.slice(0, 12)}… • {formatTimestamp(packet.generated_at)}
+                        Packet {packets.indexOf(packet) + 1} • {formatTimestamp(packet.generated_at)}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Workflow Run Reference</span>
+                  <span style={labelStyle}>Workflow Run</span>
                   <select
                     value={selectedWorkflowRunId}
                     onChange={(event) => setSelectedWorkflowRunId(event.target.value)}
                     style={inputStyle}
                   >
-                    <option value="">Latest workflow run or none</option>
-                    {workflowRuns.map((run) => (
+                    <option value="">Latest run or none</option>
+                    {workflowRuns.map((run, idx) => (
                       <option key={run.run_id} value={run.run_id}>
-                        {run.workflow_id} • {run.status.replace(/_/g, " ")}
+                        Workflow run {idx + 1} • {titleCase(run.status)}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Workflow Pack Run Reference</span>
+                  <span style={labelStyle}>Processing Run</span>
                   <select
                     value={selectedWorkflowPackRunId}
                     onChange={(event) => setSelectedWorkflowPackRunId(event.target.value)}
                     style={inputStyle}
                   >
-                    <option value="">Latest workflow-pack run or none</option>
-                    {workflowPackRuns.map((run) => (
+                    <option value="">Latest processing run or none</option>
+                    {workflowPackRuns.map((run, idx) => (
                       <option key={run.run_id} value={run.run_id}>
-                        {run.workflow_pack_id} • {run.status.replace(/_/g, " ")}
+                        Pack run {idx + 1} • {titleCase(run.status)}
                       </option>
                     ))}
                   </select>
@@ -360,7 +364,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                   <span>Attach retrieval evidence when available</span>
                 </label>
                 <label style={{ ...fieldStyle, minWidth: "280px" }}>
-                  <span style={labelStyle}>Generation Note</span>
+                  <span style={labelStyle}>Note (optional)</span>
                   <input
                     value={generationNote}
                     onChange={(event) => setGenerationNote(event.target.value)}
@@ -369,46 +373,57 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                   />
                 </label>
 
-                {requiresProviderFields && (
-                  <>
-                    <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0.5rem 0 0" }}>
-                      AI-assisted drafting requires provider credentials. These are used only for this request.
-                    </p>
-                    <label style={fieldStyle}>
-                      <span style={labelStyle}>Provider ID</span>
-                      <input
-                        value={providerId}
-                        onChange={(event) => setProviderId(event.target.value)}
-                        style={inputStyle}
-                        placeholder="openai"
-                      />
-                    </label>
-                    <label style={fieldStyle}>
-                      <span style={labelStyle}>Model ID</span>
-                      <input
-                        value={modelId}
-                        onChange={(event) => setModelId(event.target.value)}
-                        style={inputStyle}
-                        placeholder="gpt-4.1-mini or similar"
-                      />
-                    </label>
-                    <label style={fieldStyle}>
-                      <span style={labelStyle}>API Key</span>
-                      <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(event) => setApiKey(event.target.value)}
-                        style={inputStyle}
-                        autoComplete="off"
-                        placeholder="Provider API key"
-                      />
-                    </label>
-                  </>
-                )}
-
                 <button type="submit" style={primaryButtonStyle} disabled={createDisabled}>
                   {working ? "Working..." : "Create Draft"}
                 </button>
+
+                {requiresProviderFields && (
+                  <div style={{ flexBasis: "100%", display: "grid", gap: "0.6rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowProviderFields((prev) => !prev)}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "0.25rem 0 0", fontSize: "0.82rem", color: "#3b82f6", fontWeight: 500, textAlign: "left" }}
+                    >
+                      {showProviderFields ? "Hide advanced options \u25be" : "Advanced options \u25b8"}
+                    </button>
+                    {showProviderFields && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.85rem", alignItems: "flex-end" }}>
+                        <p style={{ flexBasis: "100%", fontSize: "0.82rem", color: "#64748b", margin: 0 }}>
+                          Override the default AI provider for this request. Credentials are not stored.
+                        </p>
+                        <label style={fieldStyle}>
+                          <span style={labelStyle}>Provider</span>
+                          <input
+                            value={providerId}
+                            onChange={(event) => setProviderId(event.target.value)}
+                            style={inputStyle}
+                            placeholder="openai"
+                          />
+                        </label>
+                        <label style={fieldStyle}>
+                          <span style={labelStyle}>Model</span>
+                          <input
+                            value={modelId}
+                            onChange={(event) => setModelId(event.target.value)}
+                            style={inputStyle}
+                            placeholder="gpt-4.1-mini or similar"
+                          />
+                        </label>
+                        <label style={fieldStyle}>
+                          <span style={labelStyle}>API Key</span>
+                          <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(event) => setApiKey(event.target.value)}
+                            style={inputStyle}
+                            autoComplete="off"
+                            placeholder="Provider API key"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
               </form>
 
               {selectedTemplate && (
@@ -416,9 +431,9 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                   <strong>{selectedTemplate.display_name}</strong>
                   <p style={helperTextStyle}>{selectedTemplate.description}</p>
                   <div style={metaGridStyle}>
-                    <span>Audience</span><span>{selectedTemplate.audience_type.replace(/_/g, " ")}</span>
-                    <span>Provider assist</span><span>{selectedTemplate.provider_assisted_available ? "Available" : "No"}</span>
-                    <span>Deterministic sections</span><span>{selectedTemplate.uses_deterministic_sections ? "Yes" : "No"}</span>
+                    <span>Audience</span><span>{titleCase(selectedTemplate.audience_type)}</span>
+                    <span>AI drafting</span><span>{selectedTemplate.provider_assisted_available ? "Available" : "Not available"}</span>
+                    <span>Template sections</span><span>{selectedTemplate.uses_deterministic_sections ? "Yes" : "No"}</span>
                   </div>
                   <div style={stackStyle}>
                     {selectedTemplate.required_source_inputs.map((input) => (
@@ -460,11 +475,9 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                         </span>
                       </div>
                       <div style={metaGridStyle}>
-                        <span>Draft ID</span><span style={monoStyle}>{draft.draft_id.slice(0, 12)}…</span>
                         <span>Template</span><span>{draft.template_id}</span>
-                        <span>Strategy</span><span>{draft.strategy.replace(/_/g, " ")}</span>
-                        <span>Audience</span><span>{draft.audience_type.replace(/_/g, " ")}</span>
-                        <span>Packet</span><span style={monoStyle}>{draft.packet_id?.slice(0, 12) ?? "—"}</span>
+                        <span>Approach</span><span>{strategyLabel(draft.strategy)}</span>
+                        <span>Audience</span><span>{titleCase(draft.audience_type)}</span>
                         <span>Updated</span><span>{formatTimestamp(draft.updated_at)}</span>
                       </div>
                       <p style={metaTextStyle}>{draft.subject}</p>
@@ -483,14 +496,11 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                     <span>Subject</span><span>{selectedDraft.draft.subject}</span>
                     <span>Status</span><span>{draftStatusLabel(selectedDraft.draft.status)}</span>
                     <span>Template</span><span>{selectedDraft.template?.display_name ?? selectedDraft.draft.template_id}</span>
-                    <span>Strategy</span><span>{selectedDraft.draft.strategy.replace(/_/g, " ")}</span>
-                    <span>Provider</span><span>{selectedDraft.draft.generation.provider || "Deterministic only"}</span>
-                    <span>Model</span><span>{selectedDraft.draft.generation.model_id || "—"}</span>
-                    <span>Finish reason</span><span>{selectedDraft.draft.generation.finish_reason ?? "—"}</span>
+                    <span>Approach</span><span>{strategyLabel(selectedDraft.draft.strategy)}</span>
                     <span>Documents</span><span>{selectedDraft.draft.source_metadata.linked_document_count}</span>
                     <span>Missing required items</span><span>{selectedDraft.draft.source_metadata.missing_required_item_count}</span>
                     <span>Open actions</span><span>{selectedDraft.draft.source_metadata.open_action_count}</span>
-                    <span>Document evidence</span><span>{selectedDraft.draft.source_metadata.includes_document_evidence ? "Yes" : "No"}</span>
+                    <span>Document evidence</span><span>{selectedDraft.draft.source_metadata.includes_document_evidence ? "Included" : "Not included"}</span>
                   </div>
                   {selectedDraft.draft.generation.notes.length > 0 && (
                     <div style={subtlePanelStyle}>
@@ -508,7 +518,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                       <article key={section.section_type} style={itemCardStyle}>
                         <div style={itemHeaderStyle}>
                           <strong>{section.title}</strong>
-                          <span style={subtleBadgeStyle}>{section.section_type.replace(/_/g, " ")}</span>
+                          <span style={subtleBadgeStyle}>{titleCase(section.section_type)}</span>
                         </div>
                         {section.body && <p style={itemTextStyle}>{section.body}</p>}
                         {section.bullet_items.length > 0 && (
@@ -529,32 +539,32 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                 </section>
 
                 <section style={sectionCardStyle}>
-                  <h2 style={sectionTitleStyle}>Grounding</h2>
+                  <h2 style={sectionTitleStyle}>Source Data</h2>
                   <div style={groundingLayoutStyle}>
                     <div style={groundingColumnStyle}>
-                      <strong style={subheadingStyle}>Source Metadata</strong>
+                      <strong style={subheadingStyle}>Case Context</strong>
                       <div style={subtlePanelStyle}>
                         <div style={metaGridStyle}>
                           <span>Case status</span><span>{selectedDraft.draft.source_metadata.case_status}</span>
-                          <span>Readiness</span><span>{selectedDraft.draft.source_metadata.readiness_status.replace(/_/g, " ")}</span>
-                          <span>Latest packet</span><span style={monoStyle}>{selectedDraft.draft.source_metadata.latest_packet_id ?? "—"}</span>
-                          <span>Workflow run</span><span style={monoStyle}>{selectedDraft.draft.source_metadata.workflow_run_id ?? "—"}</span>
-                          <span>Workflow-pack run</span><span style={monoStyle}>{selectedDraft.draft.source_metadata.workflow_pack_run_id ?? "—"}</span>
+                          <span>Readiness</span><span>{readinessLabel(selectedDraft.draft.source_metadata.readiness_status)}</span>
+                          <span>Export package</span><span>{shortRef(selectedDraft.draft.source_metadata.latest_packet_id)}</span>
+                          <span>Workflow run</span><span>{shortRef(selectedDraft.draft.source_metadata.workflow_run_id)}</span>
+                          <span>Processing run</span><span>{shortRef(selectedDraft.draft.source_metadata.workflow_pack_run_id)}</span>
                         </div>
                         {selectedDraft.draft.source_metadata.notes.map((note) => (
                           <p key={note} style={metaTextStyle}>{note}</p>
                         ))}
                       </div>
-                      <strong style={subheadingStyle}>Source Entities</strong>
+                      <strong style={subheadingStyle}>Source References</strong>
                       <div style={stackStyle}>
                         {selectedDraft.draft.source_entities.length === 0 ? (
-                          <div style={subtlePanelStyle}>No source entities were attached.</div>
+                          <div style={subtlePanelStyle}>No source references were attached.</div>
                         ) : (
                           selectedDraft.draft.source_entities.map((entity) => (
                             <article key={`${entity.source_entity_type}-${entity.source_entity_id}-${entity.source_path}`} style={miniCardStyle}>
                               <div style={itemHeaderStyle}>
                                 <strong>{entity.display_label || entity.source_entity_id || entity.source_entity_type}</strong>
-                                <span style={subtleBadgeStyle}>{entity.source_entity_type.replace(/_/g, " ")}</span>
+                                <span style={subtleBadgeStyle}>{titleCase(entity.source_entity_type)}</span>
                               </div>
                               <p style={monoMetaStyle}>{entity.source_path || "—"}</p>
                               {entity.notes.map((note) => (
@@ -567,23 +577,23 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                     </div>
 
                     <div style={groundingColumnStyle}>
-                      <strong style={subheadingStyle}>Evidence References</strong>
+                      <strong style={subheadingStyle}>Supporting Evidence</strong>
                       <div style={stackStyle}>
                         {selectedDraft.draft.evidence_references.length === 0 ? (
-                          <div style={subtlePanelStyle}>No evidence references were attached.</div>
+                          <div style={subtlePanelStyle}>No supporting evidence was attached.</div>
                         ) : (
                           selectedDraft.draft.evidence_references.map((reference) => (
                             <article key={reference.evidence_id} style={itemCardStyle}>
                               <div style={itemHeaderStyle}>
                                 <strong>{reference.label}</strong>
-                                <span style={subtleBadgeStyle}>{reference.kind.replace(/_/g, " ")}</span>
+                                <span style={subtleBadgeStyle}>{titleCase(reference.kind)}</span>
                               </div>
                               <p style={itemTextStyle}>{reference.snippet_text || "No snippet text recorded."}</p>
                               <div style={metaGridStyle}>
-                                <span>Evidence ID</span><span style={monoStyle}>{reference.evidence_id}</span>
-                                <span>Source entity</span><span>{reference.source_entity_type.replace(/_/g, " ")}</span>
-                                <span>Entity ID</span><span style={monoStyle}>{reference.source_entity_id || "—"}</span>
-                                <span>Document</span><span style={monoStyle}>{reference.source_reference?.document_id ?? "—"}</span>
+                                <span>Reference</span><span>{shortRef(reference.evidence_id)}</span>
+                                <span>Source type</span><span>{titleCase(reference.source_entity_type)}</span>
+                                <span>Source</span><span>{shortRef(reference.source_entity_id)}</span>
+                                <span>Document</span><span>{shortRef(reference.source_reference?.document_id)}</span>
                                 <span>Page</span><span>{reference.source_reference?.page_number ?? "—"}</span>
                               </div>
                               {reference.notes.map((note) => (
@@ -598,7 +608,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                 </section>
 
                 <section style={sectionCardStyle}>
-                  <h2 style={sectionTitleStyle}>Review Metadata</h2>
+                  <h2 style={sectionTitleStyle}>Review</h2>
                   <form onSubmit={handleReviewUpdate} style={formStyle}>
                     <label style={fieldStyle}>
                       <span style={labelStyle}>Draft Status</span>
@@ -616,10 +626,9 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                     <label style={fieldStyle}>
                       <span style={labelStyle}>Reviewed By</span>
                       <input
-                        value={reviewedBy}
-                        onChange={(event) => setReviewedBy(event.target.value)}
-                        style={inputStyle}
-                        placeholder="Operator identifier"
+                        value={currentUser.name || currentUser.email || reviewedBy}
+                        readOnly
+                        style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }}
                       />
                     </label>
                     <label style={{ ...fieldStyle, minWidth: "320px" }}>
@@ -632,7 +641,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                       />
                     </label>
                     <button type="submit" style={primaryButtonStyle} disabled={working}>
-                      {working ? "Working..." : "Record Review Metadata"}
+                      {working ? "Working..." : "Update Review"}
                     </button>
                   </form>
                 </section>
@@ -645,7 +654,7 @@ export default function CommunicationDraftsClient({ caseId, currentUser }: { cas
                         <div style={sectionHeaderStyle}>
                           <div>
                             <strong>{artifact.filename}</strong>
-                            <p style={metaTextStyle}>{artifact.format.replace(/_/g, " ")}</p>
+                            <p style={metaTextStyle}>{titleCase(artifact.format)}</p>
                           </div>
                           <button
                             type="button"
@@ -684,6 +693,17 @@ function labelForDraftType(draftType: CommunicationDraftType): string {
       return "Packet cover note";
     default:
       return draftType;
+  }
+}
+
+function strategyLabel(strategy: string): string {
+  switch (strategy) {
+    case "deterministic_template_only":
+      return "Template only";
+    case "provider_assisted_draft":
+      return "AI-assisted";
+    default:
+      return titleCase(strategy);
   }
 }
 
