@@ -23,8 +23,6 @@ from fastapi.testclient import TestClient
 
 from casegraph_agent_sdk import (
     # -- agents / runtime ---------------------------------------------------
-    AgentsResponse,
-    # -- automation ---------------------------------------------------------
     AutomationCapabilitiesResponse,
     # -- cases --------------------------------------------------------------
     CaseDetailResponse,
@@ -43,8 +41,6 @@ from casegraph_agent_sdk import (
     DocumentRegistryListResponse,
     DocumentsCapabilitiesResponse,
     # -- knowledge ----------------------------------------------------------
-    KnowledgeCapabilitiesResponse,
-    # -- providers ----------------------------------------------------------
     ProvidersResponse,
     # -- rag ----------------------------------------------------------------
     RagTaskRegistryResponse,
@@ -98,13 +94,10 @@ from casegraph_agent_sdk import (
     AutomationRunListResponse,
     # -- work management per-case -------------------------------------------
     AssignmentHistoryResponse,
-    CaseAssignmentResponse,
-    CaseSLAResponse,
     CaseWorkStatusResponse,
     # -- case target pack ---------------------------------------------------
     CaseTargetPackResponse,
     # -- workflow pack runs -------------------------------------------------
-    WorkflowPackRunSummaryResponse,
     WorkflowPackRunResponse,
 )
 

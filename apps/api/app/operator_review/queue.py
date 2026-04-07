@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import UTC, datetime
 
 from sqlmodel import Session, desc, select
 
@@ -19,7 +18,6 @@ from casegraph_agent_sdk.operator_review import (
 
 from app.cases.models import CaseDocumentLinkModel, CaseRecordModel, WorkflowRunRecordModel
 from app.operator_review.actions import ActionItemService, _DerivedActionCandidate
-from app.operator_review.errors import OperatorReviewServiceError
 from app.operator_review.models import ActionItemModel, ReviewNoteModel, StageTransitionModel
 from app.readiness.service import ReadinessService
 from app.persistence.database import isoformat_utc

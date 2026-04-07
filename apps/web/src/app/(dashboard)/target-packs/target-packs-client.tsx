@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
   TargetPackCategory,
@@ -59,7 +60,7 @@ export default function TargetPacksClient() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load target packs.");
+          setError(err instanceof Error ? err.message : "Unable to load target packs. Try refreshing the page.");
           setPacks([]);
           setSelectedPackId(null);
         }
@@ -90,7 +91,7 @@ export default function TargetPacksClient() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unable to load target-pack detail.");
+          setError(err instanceof Error ? err.message : "Unable to load target-pack detail. The pack may have been removed.");
           setSelectedPack(null);
         }
       })
@@ -136,9 +137,8 @@ export default function TargetPacksClient() {
             <p style={breadcrumbStyle}>Platform</p>
             <h1 style={titleStyle}>Target Packs</h1>
             <p style={subtitleStyle}>
-              Browse versioned target-pack metadata for destination-specific field schemas,
-              requirement overlays, template bindings, and explicit compatibility. Selection
-              remains case-scoped and descriptive only.
+              Browse target pack configurations including field schemas,
+              requirements, and template bindings for each submission destination.
             </p>
           </div>
           <div style={linkRowStyle}>
@@ -363,7 +363,7 @@ export default function TargetPacksClient() {
                           <article key={requirement.override_id} style={itemCardStyle}>
                             <div style={itemHeaderStyle}>
                               <strong>{requirement.display_name}</strong>
-                              <span style={subtleBadgeStyle}>{requirement.mode}</span>
+                              <span style={subtleBadgeStyle}>{titleCase(requirement.mode)}</span>
                             </div>
                             <p style={monoTextStyle}>{requirement.override_id}</p>
                             <p style={itemMetaStyle}>{requirement.description}</p>
@@ -459,11 +459,11 @@ function DetailList({
 }
 
 function formatCategory(category: TargetPackCategory): string {
-  return category.replace(/_/g, " ");
+  return titleCase(category);
 }
 
 function formatStatus(status: TargetPackStatus): string {
-  return status.replace(/_/g, " ");
+  return titleCase(status);
 }
 
 function statusBadge(status: TargetPackStatus): CSSProperties {

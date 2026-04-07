@@ -31,7 +31,7 @@ export async function fetchDocumentCapabilities(): Promise<DocumentsCapabilities
 
   if (!response.ok) {
     throw new Error(
-      await getErrorMessage(response, "Unable to load document capabilities."),
+      await getErrorMessage(response, "Unable to load document capabilities. Check that the API server is running."),
     );
   }
 
@@ -53,7 +53,7 @@ export async function ingestDocument(
   });
 
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to ingest document."));
+    throw new Error(await getErrorMessage(response, "Unable to process document. Check the file format and size, then try again."));
   }
 
   return (await response.json()) as IngestionResult;

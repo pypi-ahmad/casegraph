@@ -12,7 +12,6 @@ It does NOT duplicate retrieval or provider logic.
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any
 
 from casegraph_agent_sdk.rag import (

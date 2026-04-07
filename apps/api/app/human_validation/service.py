@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlmodel import Session, desc, select
+from sqlmodel import Session, select
 
 from casegraph_agent_sdk.audit import (
-    AuditableEntityReference,
-    AuditActorMetadata,
     ChangeSummary,
     FieldChangeRecord,
 )

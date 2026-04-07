@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { titleCase, sourceModeLabel } from "@/lib/display-labels";
 
 import type {
   AutomationCheckpointRecord,
@@ -113,7 +115,7 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
     fetchAutomationRunDetail(selectedRunId)
       .then((detail) => setRunDetail(detail))
       .catch((err: unknown) => {
-        setMessage(err instanceof Error ? err.message : "Unable to load automation run detail.");
+        setMessage(err instanceof Error ? err.message : "Unable to load automation run detail. The run may still be processing — try again in a moment.");
       })
       .finally(() => setWorking(false));
   }, [selectedRunId]);
@@ -155,12 +157,12 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
         plan_id: selectedPlanId,
         operator_id: operatorId.trim(),
       });
-      setMessage(response.result.message || "Automation run created.");
+      setMessage(response.result.message || "Automation run started. Review each checkpoint below before it proceeds.");
       if (response.run.run_id) {
         await load(response.run.run_id, selectedDraftId);
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to execute automation plan.");
+      setMessage(err instanceof Error ? err.message : "Unable to execute automation plan. Ensure an approved draft and plan are selected.");
     } finally {
       setWorking(false);
     }
@@ -180,10 +182,10 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
         operator_id: resolvedOperatorId,
         decision_note: draft.decisionNote,
       });
-      setMessage(response.result.message || "Checkpoint approved.");
+      setMessage(response.result.message || "Checkpoint approved. The run will continue to the next step.");
       await refreshRun(checkpoint.run_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to approve checkpoint.");
+      setMessage(err instanceof Error ? err.message : "Unable to approve checkpoint. Verify your operator identity and try again.");
     } finally {
       setWorking(false);
     }
@@ -204,10 +206,10 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
         decision_note: draft.decisionNote,
         skip_reason: draft.skipReason,
       });
-      setMessage(response.result.message || "Checkpoint skipped.");
+      setMessage(response.result.message || "Checkpoint skipped. The run will continue without this step.");
       await refreshRun(checkpoint.run_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to skip checkpoint.");
+      setMessage(err instanceof Error ? err.message : "Unable to skip checkpoint. Verify your operator identity and try again.");
     } finally {
       setWorking(false);
     }
@@ -228,10 +230,10 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
         decision_note: draft.decisionNote,
         block_reason: draft.blockReason,
       });
-      setMessage(response.result.message || "Checkpoint blocked the run.");
+      setMessage(response.result.message || "Run stopped at this checkpoint. It will remain paused until you resume it.");
       await refreshRun(checkpoint.run_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to block checkpoint.");
+      setMessage(err instanceof Error ? err.message : "Unable to block checkpoint. Verify your operator identity and try again.");
     } finally {
       setWorking(false);
     }
@@ -248,11 +250,11 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
         operator_id: operatorId.trim(),
         note: resumeNote.trim(),
       });
-      setMessage(response.result.message || "Automation run resumed.");
+      setMessage(response.result.message || "Run resumed. It will continue from where it left off.");
       setResumeNote("");
       await refreshRun(response.run.run_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to resume automation run.");
+      setMessage(err instanceof Error ? err.message : "Unable to resume automation run. The run may not be in a resumable state.");
     } finally {
       setWorking(false);
     }
@@ -279,14 +281,16 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
           <p style={breadcrumbStyle}>Automation Runs</p>
           <h1 style={titleStyle}>{caseTitle || "Automated Processing"}</h1>
           <p style={subtitleStyle}>
-            Review and approve each automated step for this case. You control every checkpoint.
+            Review and approve each automated step for this case. Nothing runs without your go-ahead.
           </p>
         </header>
+
+        <AiDisclosureBanner />
 
         {message && <div style={panelStyle}>{message}</div>}
 
         {loading ? (
-          <div style={panelStyle}>Loading…</div>
+          <div style={panelStyle}>Loading automation runs…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -295,7 +299,7 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
               <h2 style={sectionTitleStyle}>Execute Approved Plan</h2>
               {drafts.length === 0 ? (
                 <div style={subtlePanelStyle}>
-                  No approved submission drafts are ready for supervised execution.
+                  No approved submission drafts available yet. Approve a submission draft first, then return here to start processing.
                 </div>
               ) : (
                 <form onSubmit={handleExecute} style={formStyle}>
@@ -305,7 +309,7 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
                       <option value="">Select approved draft</option>
                       {drafts.map((draft) => (
                         <option key={draft.draft_id} value={draft.draft_id}>
-                            {draft.submission_target_id.replace(/_/g, " ")} • {draft.draft_id.slice(0, 12)}… • {describeSourceMode(draft.source_mode)}
+                            {titleCase(draft.submission_target_id)} • {describeSourceMode(draft.source_mode)}
                         </option>
                       ))}
                     </select>
@@ -313,10 +317,9 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
                   <label style={fieldStyle}>
                     <span style={labelStyle}>Operator</span>
                     <input
-                      value={operatorId}
-                      onChange={(event) => setOperatorId(event.target.value)}
-                      style={inputStyle}
-                      placeholder="Operator identifier"
+                      value={currentUser.name || currentUser.email || operatorId}
+                      readOnly
+                      style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }}
                     />
                   </label>
                   <button type="submit" style={primaryButtonStyle} disabled={working || !selectedDraftId || !selectedPlanId}>
@@ -346,16 +349,13 @@ export default function AutomationRunClient({ caseId, currentUser }: { caseId: s
                       onClick={() => setSelectedRunId(run.run_id)}
                     >
                       <div style={itemHeaderStyle}>
-                        <strong>{run.run_id.slice(0, 12)}…</strong>
+                        <strong>Run {runs.indexOf(run) + 1}</strong>
                         <span style={{ ...badgeStyle, backgroundColor: statusColor(run.status) }}>
-                          {run.status.replace(/_/g, " ")}
+                          {titleCase(run.status)}
                         </span>
                       </div>
                       <div style={metaGridStyle}>
-                        <span>Draft</span><span style={monoStyle}>{run.draft_id.slice(0, 12)}…</span>
-                        <span>Plan</span><span style={monoStyle}>{run.plan_id.slice(0, 12)}…</span>
-                        <span>Source mode</span><span>{describeSourceMode(run.source_mode)}</span>
-                        <span>Reviewed snapshot</span><span style={monoStyle}>{run.source_reviewed_snapshot_id ? `${run.source_reviewed_snapshot_id.slice(0, 12)}…` : "None"}</span>
+                        <span>Data source</span><span>{describeSourceMode(run.source_mode)}</span>
                         <span>Operator</span><span>{run.operator_id || "—"}</span>
                         <span>Checkpoints</span><span>{run.summary.checkpoint_count}</span>
                         <span>Pending review</span><span>{run.summary.pending_checkpoint_count}</span>
@@ -420,14 +420,10 @@ function RunOverviewPanel({
         )}
       </div>
       <div style={metaGridStyle}>
-        <span>Run ID</span><span style={monoStyle}>{run.run_id}</span>
-        <span>Status</span><span style={{ ...badgeStyle, backgroundColor: statusColor(run.status), width: "fit-content" }}>{run.status.replace(/_/g, " ")}</span>
-        <span>Draft</span><span style={monoStyle}>{run.draft_id}</span>
-        <span>Plan</span><span style={monoStyle}>{run.plan_id}</span>
-        <span>Source mode</span><span>{describeSourceMode(run.source_mode)}</span>
-        <span>Reviewed snapshot</span><span style={monoStyle}>{run.source_reviewed_snapshot_id || "None"}</span>
+        <span>Status</span><span style={{ ...badgeStyle, backgroundColor: statusColor(run.status), width: "fit-content" }}>{titleCase(run.status)}</span>
+        <span>Data source</span><span>{describeSourceMode(run.source_mode)}</span>
         <span>Operator</span><span>{run.operator_id || "—"}</span>
-        <span>Dry run</span><span>{run.dry_run ? "Yes" : "No"}</span>
+        <span>Preview only</span><span>{run.dry_run ? "Yes" : "No"}</span>
         <span>Started</span><span>{formatTs(run.started_at)}</span>
         <span>Completed</span><span>{formatTs(run.completed_at)}</span>
       </div>
@@ -451,8 +447,8 @@ function RunOverviewPanel({
           <strong>Paused Checkpoint</strong>
           <div style={metaGridStyle}>
             <span>Step</span><span>{run.paused_run.step_index}. {run.paused_run.step_title}</span>
-            <span>Execution mode</span><span>{run.paused_run.execution_mode.replace(/_/g, " ")}</span>
-            <span>Checkpoint status</span><span>{run.paused_run.checkpoint_status.replace(/_/g, " ")}</span>
+            <span>Execution mode</span><span>{titleCase(run.paused_run.execution_mode)}</span>
+            <span>Checkpoint status</span><span>{titleCase(run.paused_run.checkpoint_status)}</span>
             <span>Paused at</span><span>{formatTs(run.paused_run.paused_at)}</span>
             <span>Session resume</span><span>{run.paused_run.session_resume_supported ? "Supported" : "Not supported"}</span>
           </div>
@@ -470,7 +466,7 @@ function RunOverviewPanel({
           <strong>Session Boundary</strong>
           <div style={metaGridStyle}>
             <span>Backend</span><span>{run.session.backend_id || "—"}</span>
-            <span>Status</span><span>{run.session.status}</span>
+            <span>Status</span><span>{titleCase(run.session.status)}</span>
             <span>MCP URL</span><span style={monoStyle}>{run.session.mcp_server_url || "—"}</span>
           </div>
         </div>
@@ -517,14 +513,14 @@ function CheckpointsPanel({
               <div style={itemHeaderStyle}>
                 <strong>{checkpoint.step_index}. {checkpoint.step_title}</strong>
                 <span style={{ ...badgeStyle, backgroundColor: statusColor(checkpoint.status) }}>
-                  {checkpoint.status.replace(/_/g, " ")}
+                  {titleCase(checkpoint.status)}
                 </span>
               </div>
               <div style={metaGridStyle}>
-                <span>Step type</span><span>{checkpoint.step_type.replace(/_/g, " ")}</span>
-                <span>Execution mode</span><span>{checkpoint.execution_mode.replace(/_/g, " ")}</span>
+                <span>Step type</span><span>{titleCase(checkpoint.step_type)}</span>
+                <span>Execution mode</span><span>{titleCase(checkpoint.execution_mode)}</span>
                 <span>Operator</span><span>{checkpoint.operator_id || "—"}</span>
-                <span>Decision</span><span>{checkpoint.decision_type ? checkpoint.decision_type.replace(/_/g, " ") : "Pending"}</span>
+                <span>Decision</span><span>{checkpoint.decision_type ? titleCase(checkpoint.decision_type) : "Pending"}</span>
                 <span>Created</span><span>{formatTs(checkpoint.created_at)}</span>
                 <span>Resolved</span><span>{formatTs(checkpoint.resolved_at)}</span>
               </div>
@@ -533,7 +529,7 @@ function CheckpointsPanel({
                 <div style={{ ...subtlePanelStyle, marginTop: "0.5rem" }}>
                   <strong>Fallback Hint</strong>
                   <div style={metaGridStyle}>
-                    <span>Recommended mode</span><span>{checkpoint.fallback_hint.recommended_mode.replace(/_/g, " ")}</span>
+                    <span>Recommended mode</span><span>{titleCase(checkpoint.fallback_hint.recommended_mode)}</span>
                     <span>Supported providers</span><span>{checkpoint.fallback_hint.supported_provider_ids.join(", ") || "None"}</span>
                   </div>
                   <p style={metaTextStyle}>{checkpoint.fallback_hint.reason}</p>
@@ -575,7 +571,7 @@ function CheckpointsPanel({
                     {checkpointOverrides.map((override) => (
                       <div key={override.override_id} style={miniCardStyle}>
                         <div style={metaGridStyle}>
-                          <span>Decision</span><span>{override.decision_type.replace(/_/g, " ")}</span>
+                          <span>Decision</span><span>{titleCase(override.decision_type)}</span>
                           <span>Operator</span><span>{override.operator_id || "—"}</span>
                           <span>Created</span><span>{formatTs(override.created_at)}</span>
                         </div>
@@ -607,10 +603,10 @@ function StepsPanel({ steps }: { steps: ExecutedStepRecord[] }) {
           <article key={step.executed_step_id} style={itemCardStyle}>
             <div style={itemHeaderStyle}>
               <strong>{step.step_index}. {step.title}</strong>
-              <span style={{ ...badgeStyle, backgroundColor: statusColor(step.status) }}>{step.status}</span>
+              <span style={{ ...badgeStyle, backgroundColor: statusColor(step.status) }}>{titleCase(step.status)}</span>
             </div>
             <div style={metaGridStyle}>
-              <span>Type</span><span>{step.step_type.replace(/_/g, " ")}</span>
+              <span>Type</span><span>{titleCase(step.step_type)}</span>
               <span>Tool</span><span>{step.tool_id ?? "—"}</span>
               <span>Backend</span><span>{step.backend_id ?? "—"}</span>
               <span>Duration</span><span>{step.outcome.duration_ms != null ? `${step.outcome.duration_ms}ms` : "—"}</span>
@@ -659,7 +655,7 @@ function ArtifactsPanel({ artifacts }: { artifacts: RunArtifactRecord[] }) {
           <article key={artifact.artifact_id} style={itemCardStyle}>
             <div style={itemHeaderStyle}>
               <strong>{artifact.display_name}</strong>
-              <span style={{ ...badgeStyle, backgroundColor: "#0d6efd" }}>{artifact.artifact_type.replace(/_/g, " ")}</span>
+              <span style={{ ...badgeStyle, backgroundColor: "#0d6efd" }}>{titleCase(artifact.artifact_type)}</span>
             </div>
             {artifact.content_text && <pre style={preStyle}>{artifact.content_text}</pre>}
             <p style={metaTextStyle}>Captured: {formatTs(artifact.captured_at)}</p>
@@ -681,7 +677,7 @@ function EventsPanel({ events }: { events: RunEventRecord[] }) {
         {events.map((event) => (
           <div key={event.event_id} style={eventRowStyle}>
             <span style={{ ...badgeStyle, backgroundColor: eventColor(event.event_type), fontSize: "0.7rem" }}>
-              {event.event_type.replace(/_/g, " ")}
+              {titleCase(event.event_type)}
             </span>
             <span style={{ flex: 1 }}>{event.message}</span>
             <span style={eventTimestampStyle}>{formatTs(event.timestamp)}</span>
@@ -701,7 +697,7 @@ function formatTs(value: string): string {
 }
 
 function describeSourceMode(value: string): string {
-  return value === "reviewed_snapshot" ? "Reviewed snapshot" : "Live case state";
+  return sourceModeLabel(value);
 }
 
 function statusColor(status: string): string {

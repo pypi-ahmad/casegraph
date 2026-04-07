@@ -17,7 +17,6 @@ from uuid import uuid4
 from sqlmodel import Session
 
 from casegraph_agent_sdk.evals import (
-    AssertionResultStatus,
     EvalAssertion,
     EvalAssertionResult,
     EvalCaseDefinition,
@@ -34,7 +33,6 @@ from casegraph_agent_sdk.workflow_packs import (
 
 from app.cases.models import CaseDocumentLinkModel, CaseRecordModel
 from app.ingestion.models import DocumentRecord
-from app.persistence.database import utcnow
 from app.workflow_packs.service import WorkflowPackOrchestrationService
 
 logger = logging.getLogger(__name__)

@@ -14,7 +14,10 @@ import type {
   StageTransitionRecord,
 } from "@casegraph/agent-sdk";
 
+import CaseLifecycleIndicator from "@/components/case-lifecycle-indicator";
+
 import { fetchCaseDetail } from "@/lib/cases-api";
+import { stageLabel, actionCategoryLabel, shortRef, titleCase } from "@/lib/display-labels";
 import {
   createReviewNote,
   fetchCaseActions,
@@ -42,7 +45,7 @@ const DECISION_LABELS: Record<string, string> = {
 };
 
 function displayLabel(value: string): string {
-  return DECISION_LABELS[value] ?? value.replace(/_/g, " ");
+  return DECISION_LABELS[value] ?? titleCase(value);
 }
 
 export default function CaseReviewClient({ caseId }: { caseId: string }) {
@@ -60,6 +63,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
   const [transitionNote, setTransitionNote] = useState("");
   const [noteBody, setNoteBody] = useState("");
   const [decision, setDecision] = useState<ReviewDecision>("note_only");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -100,9 +104,9 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
     try {
       const response = await generateCaseActions(caseId);
       setActions(response.actions);
-      setMessage(response.result.message || "Action items refreshed.");
+      setMessage(response.result.message || "Action items refreshed. Review the recommended next steps below.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to generate action items.");
+      setMessage(err instanceof Error ? err.message : "Unable to generate action items. Check that documents are linked to this case and try again.");
     } finally {
       setWorking(false);
     }
@@ -110,7 +114,11 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
 
   async function handleTransition(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!nextStage) return;
+    if (!nextStage) {
+      setFieldErrors((prev) => ({ ...prev, nextStage: "Select a target stage before transitioning." }));
+      return;
+    }
+    setFieldErrors((prev) => { const { nextStage: _, ...rest } = prev; return rest; });
     setWorking(true);
     setMessage(null);
     try {
@@ -124,9 +132,9 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
       setNextStage(response.stage.allowed_transitions[0] ?? "");
       setTransitionReason("");
       setTransitionNote("");
-      setMessage(response.result.message || "Case stage updated.");
+      setMessage(response.result.message || "Case stage updated. The new stage is now visible in the case header.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to update case stage. Please try again.");
+      setMessage(err instanceof Error ? err.message : "Unable to update case stage. Verify the transition is allowed from the current stage and try again.");
     } finally {
       setWorking(false);
     }
@@ -134,7 +142,15 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
 
   async function handleAddNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!noteBody.trim()) return;
+    if (!noteBody.trim()) {
+      setFieldErrors((prev) => ({ ...prev, noteBody: "A note is required." }));
+      return;
+    }
+    if (noteBody.trim().length < 5) {
+      setFieldErrors((prev) => ({ ...prev, noteBody: "Note must be at least 5 characters." }));
+      return;
+    }
+    setFieldErrors((prev) => { const { noteBody: _, ...rest } = prev; return rest; });
     setWorking(true);
     setMessage(null);
     try {
@@ -145,9 +161,9 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
       setNotes((current) => [response.note, ...current]);
       setNoteBody("");
       setDecision("note_only");
-      setMessage(response.result.message || "Review note recorded.");
+      setMessage(response.result.message || "Review note recorded. It will appear in the case timeline.");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to record review note. Please try again.");
+      setMessage(err instanceof Error ? err.message : "Unable to record review note. Check your note content and try again.");
     } finally {
       setWorking(false);
     }
@@ -186,9 +202,11 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
           </div>
           <div style={headerStatusBoxStyle}>
             <span style={statusLabelStyle}>Current stage</span>
-            <strong style={statusValueStyle}>{stage.stage.current_stage.replace(/_/g, " ")}</strong>
+            <strong style={statusValueStyle}>{stageLabel(stage.stage.current_stage)}</strong>
           </div>
         </header>
+
+        <CaseLifecycleIndicator currentStage={stage.stage.current_stage} />
 
         {message && <div style={panelStyle}>{message}</div>}
 
@@ -201,7 +219,7 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
               </button>
             </div>
             <p style={helperTextStyle}>
-              Generated from explicit case, checklist, extraction, and workflow state only.
+              Based on case, checklist, extraction, and workflow data.
             </p>
             {openActions.length === 0 ? (
               <div style={subtlePanelStyle}>No action items yet. Click “Find Next Steps” above to generate recommended actions from case data.</div>
@@ -211,18 +229,18 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
                   <article key={action.action_item_id} style={itemCardStyle}>
                     <div style={itemHeaderStyle}>
                       <strong>{action.title}</strong>
-                      <span style={actionBadgeStyle}>{action.category.replace(/_/g, " ")}</span>
+                      <span style={actionBadgeStyle}>{actionCategoryLabel(action.category)}</span>
                     </div>
                     <p style={itemTextStyle}>{action.description}</p>
                     <p style={metaTextStyle}>{action.source_reason}</p>
                     <div style={metaGridStyle}>
                       <span>Priority</span><span>{action.priority}</span>
-                      <span>Source</span><span>{action.source.replace(/_/g, " ")}</span>
-                      <span>Status</span><span>{action.status.replace(/_/g, " ")}</span>
-                      {action.checklist_item_id && <><span>Checklist item</span><span>{action.checklist_item_id}</span></>}
-                      {action.document_id && <><span>Document</span><span>{action.document_id}</span></>}
-                      {action.extraction_id && <><span>Extraction</span><span>{action.extraction_id}</span></>}
-                      {action.run_id && <><span>Run</span><span>{action.run_id}</span></>}
+                      <span>Source</span><span>{titleCase(action.source)}</span>
+                      <span>Status</span><span>{titleCase(action.status)}</span>
+                      {action.checklist_item_id && <><span>Checklist ref</span><span>{shortRef(action.checklist_item_id)}</span></>}
+                      {action.document_id && <><span>Document ref</span><span>{shortRef(action.document_id)}</span></>}
+                      {action.extraction_id && <><span>Extraction ref</span><span>{shortRef(action.extraction_id)}</span></>}
+                      {action.run_id && <><span>Run ref</span><span>{shortRef(action.run_id)}</span></>}
                     </div>
                   </article>
                 ))}
@@ -235,12 +253,17 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
             <form onSubmit={handleTransition} style={formStyle}>
               <label style={fieldStyle}>
                 <span style={labelStyle}>Next stage</span>
-                <select value={nextStage} onChange={(event) => setNextStage(event.target.value as CaseStage | "")} style={inputStyle}>
+                <select
+                  value={nextStage}
+                  onChange={(event) => { setNextStage(event.target.value as CaseStage | ""); setFieldErrors((prev) => { const { nextStage: _, ...rest } = prev; return rest; }); }}
+                  style={fieldErrors.nextStage ? { ...inputStyle, borderColor: "#ef4444" } : inputStyle}
+                >
                   <option value="">Select stage</option>
                   {stage.stage.allowed_transitions.map((item) => (
-                    <option key={item} value={item}>{item.replace(/_/g, " ")}</option>
+                    <option key={item} value={item}>{stageLabel(item)}</option>
                   ))}
                 </select>
+                {fieldErrors.nextStage && <span style={fieldErrorStyle}>{fieldErrors.nextStage}</span>}
               </label>
               <label style={fieldStyle}>
                 <span style={labelStyle}>Reason</span>
@@ -269,7 +292,15 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
               </label>
               <label style={fieldStyle}>
                 <span style={labelStyle}>Note</span>
-                <textarea value={noteBody} onChange={(event) => setNoteBody(event.target.value)} style={textareaStyle} rows={4} placeholder="Record an operator review note." />
+                <textarea
+                  value={noteBody}
+                  onChange={(event) => { setNoteBody(event.target.value); setFieldErrors((prev) => { const { noteBody: _, ...rest } = prev; return rest; }); }}
+                  onBlur={() => { if (noteBody.trim().length > 0 && noteBody.trim().length < 5) setFieldErrors((prev) => ({ ...prev, noteBody: "Note must be at least 5 characters." })); }}
+                  style={fieldErrors.noteBody ? { ...textareaStyle, borderColor: "#ef4444" } : textareaStyle}
+                  rows={4}
+                  placeholder="Record an operator review note."
+                />
+                {fieldErrors.noteBody && <span style={fieldErrorStyle}>{fieldErrors.noteBody}</span>}
               </label>
               <button type="submit" style={primaryButtonStyle} disabled={working || !noteBody.trim()}>
                 {working ? "Working..." : "Add Review Note"}
@@ -277,13 +308,13 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
             </form>
             <div style={stackStyle}>
               {notes.length === 0 ? (
-                <div style={subtlePanelStyle}>No review notes recorded yet.</div>
+                <div style={subtlePanelStyle}>No review notes yet. Use the form above to record observations or decisions.</div>
               ) : (
                 notes.map((note) => (
                   <article key={note.note_id} style={itemCardStyle}>
                     <div style={itemHeaderStyle}>
-                      <strong>{note.decision.replace(/_/g, " ")}</strong>
-                      <span style={noteBadgeStyle}>{note.stage_snapshot.replace(/_/g, " ")}</span>
+                      <strong>{displayLabel(note.decision)}</strong>
+                      <span style={noteBadgeStyle}>{stageLabel(note.stage_snapshot)}</span>
                     </div>
                     <p style={itemTextStyle}>{note.body}</p>
                     <p style={metaTextStyle}>{formatTimestamp(note.created_at)}</p>
@@ -297,12 +328,12 @@ export default function CaseReviewClient({ caseId }: { caseId: string }) {
             <h2 style={sectionTitleStyle}>Stage History</h2>
             <div style={stackStyle}>
               {history.length === 0 ? (
-                <div style={subtlePanelStyle}>No explicit stage transitions have been recorded yet.</div>
+                <div style={subtlePanelStyle}>No stage changes yet. Transitions will appear here as the case progresses.</div>
               ) : (
                 history.map((transition) => (
                   <article key={transition.transition_id} style={itemCardStyle}>
                     <div style={itemHeaderStyle}>
-                      <strong>{transition.from_stage.replace(/_/g, " ")} → {transition.to_stage.replace(/_/g, " ")}</strong>
+                      <strong>{stageLabel(transition.from_stage)} → {stageLabel(transition.to_stage)}</strong>
                       <span style={noteBadgeStyle}>{transition.metadata.transition_type}</span>
                     </div>
                     {transition.metadata.reason && (
@@ -456,6 +487,12 @@ const inputStyle: CSSProperties = {
 const textareaStyle: CSSProperties = {
   ...inputStyle,
   resize: "vertical",
+};
+
+const fieldErrorStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#dc2626",
+  marginTop: "-0.25rem",
 };
 
 const primaryButtonStyle: CSSProperties = {

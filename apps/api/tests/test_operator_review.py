@@ -22,7 +22,6 @@ from app.ingestion.models import DocumentRecord
 from app.operator_review.actions import ActionItemService
 from app.operator_review.errors import OperatorReviewServiceError
 from app.operator_review.lifecycle import CaseLifecycleService
-from app.operator_review.models import ActionItemModel
 from app.operator_review.queue import ReviewQueueService
 from app.operator_review.router import router as operator_review_router
 from app.persistence.database import get_session
@@ -350,7 +349,7 @@ class TestReviewQueueService:
 
     def test_queue_limit_applies_after_filters(self, session: Session) -> None:
         older_matching_case = _create_case(session)
-        newer_nonmatching_case = _create_case(session)
+        _create_case(session)  # newer non-matching case (needed for filter contrast)
         lifecycle = CaseLifecycleService(session)
         lifecycle.transition_stage(
             older_matching_case.case_id,

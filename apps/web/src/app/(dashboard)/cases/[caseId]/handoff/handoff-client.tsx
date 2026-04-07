@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { shortRef, titleCase } from "@/lib/display-labels";
 
 import type {
   HandoffEligibilitySummary,
@@ -36,6 +38,7 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function load(preferredSnapshotId?: string) {
     setLoading(true);
@@ -81,21 +84,30 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
 
     const issues: string[] = [];
     if (selectedSnapshot.signoff_status !== "signed_off") {
-      issues.push("This snapshot must be explicitly signed off before it can be selected for downstream handoff.");
+      issues.push("Sign off on this snapshot before selecting it for handoff.");
     }
     if (selectedSnapshot.summary.unresolved_item_count > 0) {
       issues.push(
-        `${selectedSnapshot.summary.unresolved_item_count} unresolved review item(s) must be cleared before selection.`,
+        `${selectedSnapshot.summary.unresolved_item_count} unresolved review item(s) — resolve these before selecting.`,
       );
     }
     if (!selectedSnapshot.summary.required_requirement_reviews_complete) {
-      issues.push("Every required checklist item must be explicitly reviewed before selection.");
+      issues.push("All required checklist items need a review before selecting.");
     }
     return issues;
   }, [selectedSnapshot]);
 
   async function handleCreateSnapshot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const errors: Record<string, string> = {};
+    if (!operatorDisplayName.trim()) {
+      errors.displayName = "Operator display name is required for review checkpoints.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
     setWorking(true);
     setMessage(null);
     try {
@@ -104,11 +116,11 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
         operator_id: operatorId.trim(),
         operator_display_name: operatorDisplayName.trim(),
       });
-      setMessage(response.result.message || "Reviewed snapshot created.");
+      setMessage(response.result.message || "Review checkpoint saved. You can now approve it or continue editing.");
       setCreateNote("");
       await load(response.snapshot.snapshot_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to create reviewed snapshot.");
+      setMessage(err instanceof Error ? err.message : "Unable to create review checkpoint. Ensure the case has extracted data and try again.");
     } finally {
       setWorking(false);
     }
@@ -126,11 +138,11 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
         operator_display_name: operatorDisplayName.trim(),
         note: signoffNote.trim(),
       });
-      setMessage(response.result.message || "Reviewed snapshot signed off.");
+      setMessage(response.result.message || "Checkpoint approved. It can now be selected for handoff.");
       setSignoffNote("");
       await load(selectedSnapshot.snapshot_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to sign off reviewed snapshot.");
+      setMessage(err instanceof Error ? err.message : "Unable to sign off checkpoint. Verify your operator identity and try again.");
     } finally {
       setWorking(false);
     }
@@ -144,10 +156,10 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
     setMessage(null);
     try {
       const response = await selectReviewedSnapshotForHandoff(caseId, selectedSnapshot.snapshot_id);
-      setMessage(response.result.message || "Reviewed snapshot selected for handoff.");
+      setMessage(response.result.message || "Checkpoint selected for handoff. You can now proceed to releases.");
       await load(selectedSnapshot.snapshot_id);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to select reviewed snapshot for handoff.");
+      setMessage(err instanceof Error ? err.message : "Unable to select checkpoint for handoff. The checkpoint may need sign-off first.");
     } finally {
       setWorking(false);
     }
@@ -170,10 +182,12 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
             <p style={breadcrumbStyle}>Reviewed Handoff</p>
             <h1 style={titleStyle}>{caseTitle || "Handoff Preparation"}</h1>
             <p style={subtitleStyle}>
-              Prepare a finalized version of this case for handoff. Save a review checkpoint, approve it, and select it for downstream use.
+              Prepare a finalized version of this case for handoff. Save a checkpoint, approve it, then select it for the next step.
             </p>
           </div>
         </header>
+
+        <AiDisclosureBanner />
 
         {message && <div style={panelStyle}>{message}</div>}
 
@@ -190,7 +204,7 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
         )}
 
         {loading ? (
-          <div style={panelStyle}>Loading reviewed handoff workspace...</div>
+          <div style={panelStyle}>Loading handoff workspace…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -199,11 +213,11 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
               <section style={sectionCardStyle}>
                 <h2 style={sectionTitleStyle}>Current Handoff Eligibility</h2>
                 <div style={metaGridStyle}>
-                  <span>Release gate</span><span style={{ ...badgeStyle, backgroundColor: eligibility.eligible ? "#15803d" : "#b91c1c", color: "#ffffff" }}>{eligibility.release_gate_status.replace(/_/g, " ")}</span>
-                  <span>Candidate snapshot</span><span style={monoStyle}>{eligibility.snapshot_id || "None"}</span>
-                  <span>Selected snapshot</span><span style={monoStyle}>{eligibility.selected_snapshot_id || "None"}</span>
-                  <span>Snapshot status</span><span>{eligibility.snapshot_status?.replace(/_/g, " ") ?? "None"}</span>
-                  <span>Sign-off</span><span>{eligibility.signoff_status.replace(/_/g, " ")}</span>
+                  <span>Release gate</span><span style={{ ...badgeStyle, backgroundColor: eligibility.eligible ? "#15803d" : "#b91c1c", color: "#ffffff" }}>{titleCase(eligibility.release_gate_status)}</span>
+                  <span>Candidate snapshot</span><span>{shortRef(eligibility.snapshot_id) || "None"}</span>
+                  <span>Selected snapshot</span><span>{shortRef(eligibility.selected_snapshot_id) || "None"}</span>
+                  <span>Snapshot status</span><span>{eligibility.snapshot_status ? titleCase(eligibility.snapshot_status) : "None"}</span>
+                  <span>Sign-off</span><span>{titleCase(eligibility.signoff_status)}</span>
                   <span>Unresolved items</span><span>{eligibility.unresolved_review_item_count}</span>
                   <span>Required requirement reviews complete</span><span>{eligibility.required_requirement_reviews_complete ? "Yes" : "No"}</span>
                 </div>
@@ -221,12 +235,8 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
               <h2 style={sectionTitleStyle}>Save Review Checkpoint</h2>
               <form onSubmit={handleCreateSnapshot} style={formStyle}>
                 <label style={fieldStyle}>
-                  <span style={labelStyle}>Operator identifier</span>
-                  <input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} style={inputStyle} placeholder="Optional for snapshot creation" />
-                </label>
-                <label style={fieldStyle}>
-                  <span style={labelStyle}>Display name</span>
-                  <input value={operatorDisplayName} onChange={(event) => setOperatorDisplayName(event.target.value)} style={inputStyle} placeholder="Optional operator name" />
+                  <span style={labelStyle}>Operator</span>
+                  <input value={operatorDisplayName} readOnly style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }} />
                 </label>
                 <label style={{ ...fieldStyle, minWidth: "280px" }}>
                   <span style={labelStyle}>Snapshot note</span>
@@ -255,11 +265,11 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
                       onClick={() => setSelectedSnapshotId(snapshot.snapshot_id)}
                     >
                       <div style={itemHeaderStyle}>
-                        <strong style={monoStyle}>{snapshot.snapshot_id.slice(0, 12)}…</strong>
+                        <strong>Snapshot {snapshots.indexOf(snapshot) + 1}</strong>
                         <div style={badgeRowStyle}>
-                          <span style={badgeStyle}>{snapshot.status.replace(/_/g, " ")}</span>
+                          <span style={badgeStyle}>{titleCase(snapshot.status)}</span>
                           <span style={{ ...badgeStyle, backgroundColor: snapshot.signoff_status === "signed_off" ? "#dcfce7" : "#fee2e2", color: snapshot.signoff_status === "signed_off" ? "#166534" : "#991b1b" }}>
-                            {snapshot.signoff_status.replace(/_/g, " ")}
+                            {titleCase(snapshot.signoff_status)}
                           </span>
                         </div>
                       </div>
@@ -301,9 +311,9 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
                 </div>
 
                 <div style={metaGridStyle}>
-                  <span>Snapshot ID</span><span style={monoStyle}>{selectedSnapshot.snapshot_id}</span>
-                  <span>Status</span><span>{selectedSnapshot.status.replace(/_/g, " ")}</span>
-                  <span>Sign-off</span><span>{selectedSnapshot.signoff_status.replace(/_/g, " ")}</span>
+                  <span>Snapshot</span><span>{shortRef(selectedSnapshot.snapshot_id)}</span>
+                  <span>Status</span><span>{titleCase(selectedSnapshot.status)}</span>
+                  <span>Sign-off</span><span>{titleCase(selectedSnapshot.signoff_status)}</span>
                   <span>Created</span><span>{formatTimestamp(selectedSnapshot.created_at)}</span>
                   <span>Selected at</span><span>{selectedSnapshot.selected_at ? formatTimestamp(selectedSnapshot.selected_at) : "Not selected"}</span>
                   <span>Linked documents</span><span>{selectedSnapshot.source_metadata.linked_document_ids.length}</span>
@@ -347,7 +357,7 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
                           <div key={`${field.extraction_id}/${field.field_id}`} style={detailRowStyle}>
                             <strong>{field.field_id}</strong>
                             <span style={monoStyle}>{String(field.snapshot_value ?? "")}</span>
-                            <span style={metaTextStyle}>{field.validation_status.replace(/_/g, " ")}</span>
+                            <span style={metaTextStyle}>{titleCase(field.validation_status)}</span>
                           </div>
                         ))}
                       </div>
@@ -364,7 +374,7 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
                           <div key={requirement.item_id} style={detailRowStyle}>
                             <strong>{requirement.display_name}</strong>
                             <span>{requirement.priority}</span>
-                            <span style={metaTextStyle}>{requirement.review_status.replace(/_/g, " ")}</span>
+                            <span style={metaTextStyle}>{titleCase(requirement.review_status)}</span>
                           </div>
                         ))}
                       </div>
@@ -379,7 +389,7 @@ export default function HandoffClient({ caseId, currentUser }: { caseId: string;
                       {selectedSnapshot.unresolved_items.map((item) => (
                         <div key={`${item.item_type}/${item.entity_id}`} style={detailRowStyle}>
                           <strong>{item.display_label || item.entity_id}</strong>
-                          <span>{item.current_status.replace(/_/g, " ")}</span>
+                          <span>{titleCase(item.current_status)}</span>
                           {item.note && <span style={metaTextStyle}>{item.note}</span>}
                         </div>
                       ))}
@@ -493,6 +503,12 @@ const inputStyle: CSSProperties = {
   fontSize: "0.95rem",
   color: "#1e293b",
   backgroundColor: "#f8fafc",
+};
+
+const fieldErrorStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  color: "#dc2626",
+  marginTop: "-0.25rem",
 };
 
 const primaryButtonStyle: CSSProperties = {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { readinessLabel, shortRef, titleCase } from "@/lib/display-labels";
 
 import type {
   ChecklistResponse,
@@ -113,7 +114,7 @@ function ReadinessPanel({ readiness }: { readiness: ReadinessSummary }) {
           marginBottom: 12,
         }}
       >
-        {readiness.readiness_status.replace(/_/g, " ").toUpperCase()}
+        {readinessLabel(readiness.readiness_status).toUpperCase()}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 14 }}>
         <span>Total items:</span><span>{readiness.total_items}</span>
@@ -177,7 +178,7 @@ function ItemRow({ item }: { item: ChecklistItem }) {
             <p style={{ margin: "0 0 6px", color: "#666" }}>{item.description}</p>
           )}
           <p style={{ margin: "0 0 4px" }}>
-            <strong>Category:</strong> {item.document_category.replace(/_/g, " ")}
+            <strong>Category:</strong> {titleCase(item.document_category)}
           </p>
 
           {item.linked_documents.length > 0 ? (
@@ -190,7 +191,7 @@ function ItemRow({ item }: { item: ChecklistItem }) {
                       href={`/documents/${d.document_id}`}
                       style={{ color: "#0d6efd" }}
                     >
-                      {d.filename || d.document_id}
+                      {d.filename || shortRef(d.document_id)}
                     </Link>
                   </li>
                 ))}
@@ -220,7 +221,7 @@ function ItemRow({ item }: { item: ChecklistItem }) {
               <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
                 {item.linked_evidence.map((evidence, index) => (
                   <li key={`${evidence.source_document_id}-${index}`}>
-                    Source document: {evidence.source_document_id}
+                    Source document: {shortRef(evidence.source_document_id)}
                     {evidence.page_number !== null && ` · Page ${evidence.page_number}`}
                     {evidence.chunk_summary ? ` · ${evidence.chunk_summary}` : ""}
                   </li>
@@ -274,7 +275,7 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
         setChecklist(null);
         setReadiness(null);
       } else {
-        setError(err instanceof Error ? err.message : "Failed to load");
+        setError(err instanceof Error ? err.message : "Failed to load checklist. Try refreshing the page.");
       }
     } finally {
       setLoading(false);
@@ -294,7 +295,7 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
       setChecklist(cl);
       setReadiness(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate");
+      setError(err instanceof Error ? err.message : "Failed to generate checklist. Ensure the case has linked documents and try again.");
     } finally {
       setActionLoading(false);
     }
@@ -310,7 +311,7 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
       const cl = await fetchChecklist(caseId);
       setChecklist(cl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to evaluate");
+      setError(err instanceof Error ? err.message : "Failed to evaluate checklist. Try refreshing and running the evaluation again.");
     } finally {
       setActionLoading(false);
     }
@@ -374,7 +375,7 @@ export default function CaseChecklistClient({ caseId }: { caseId: string }) {
           </div>
 
           {checklist.checklist.items.length === 0 ? (
-            <p style={{ color: "#888" }}>No requirement items in this checklist.</p>
+            <p style={{ color: "#888" }}>This checklist has no requirement items. It may need to be regenerated after updating the domain pack.</p>
           ) : (
             checklist.checklist.items.map((item) => (
               <ItemRow key={item.item_id} item={item} />

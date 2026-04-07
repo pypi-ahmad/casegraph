@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -14,14 +13,11 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.cases.models import CaseDocumentLinkModel, CaseRecordModel, WorkflowRunRecordModel
 from app.extraction.models import ExtractionRunModel
 from app.ingestion.models import DocumentRecord
-from app.operator_review.actions import ActionItemService
 from app.operator_review.models import ActionItemModel, ReviewNoteModel
 from app.packets.errors import PacketServiceError
-from app.packets.models import ExportArtifactModel, PacketRecordModel
 from app.packets.router import router as packets_router
 from app.packets.service import PacketAssemblyService
 from app.persistence.database import get_session
-from app.readiness.models import ChecklistItemModel, ChecklistModel
 from app.readiness.service import ReadinessService
 
 
@@ -180,7 +176,7 @@ class TestPacketAssemblyService:
 
     def test_generate_packet_with_documents(self, session: Session) -> None:
         case = _create_case(session)
-        doc = _add_document(session, case_id=case.case_id, filename="medical_record.pdf")
+        _add_document(session, case_id=case.case_id, filename="medical_record.pdf")
         service = PacketAssemblyService(session)
         result = service.generate_packet(case.case_id)
 

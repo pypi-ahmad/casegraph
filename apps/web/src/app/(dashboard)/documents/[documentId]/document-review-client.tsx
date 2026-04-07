@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
   DocumentReviewResponse,
@@ -44,7 +46,7 @@ export default function DocumentReviewClient({
       })
       .catch((err) => {
         if (!cancelled)
-          setError(err instanceof Error ? err.message : "Unable to load document.");
+          setError(err instanceof Error ? err.message : "Unable to load document. The document may still be processing — try again in a moment.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -77,7 +79,7 @@ export default function DocumentReviewClient({
     return (
       <main style={pageStyle}>
         <section style={containerStyle}>
-          <div style={panelStyle}>Loading document review...</div>
+          <div style={panelStyle}>Loading document…</div>
         </section>
       </main>
     );
@@ -87,7 +89,8 @@ export default function DocumentReviewClient({
     return (
       <main style={pageStyle}>
         <section style={containerStyle}>
-          <div style={errorPanelStyle}>{error ?? "Document not found."}</div>
+          <div style={errorPanelStyle}>{error ?? "Document not found. It may have been removed or the link is incorrect."}</div>
+          <div style={{ marginTop: "0.75rem" }}><a href="/documents" style={{ color: "#3b82f6" }}>Back to Documents</a></div>
         </section>
       </main>
     );
@@ -107,18 +110,18 @@ export default function DocumentReviewClient({
           <p style={breadcrumbStyle}>Documents / Review</p>
           <h1 style={titleStyle}>{doc.source_file.filename}</h1>
           <p style={subtitleStyle}>
-            Document review workspace — inspect pages, text blocks, and overlay
-            geometry where available.
+            Review pages, text blocks, and overlay geometry for this document.
           </p>
         </header>
 
+        <AiDisclosureBanner />
+
         {/* Document metadata */}
         <section style={cardStyle}>
-          <h2 style={sectionTitleStyle}>Document Metadata</h2>
+          <h2 style={sectionTitleStyle}>Document Details</h2>
           <div style={metaGridStyle}>
-            <MetaItem label="Document ID" value={doc.document_id} />
-            <MetaItem label="Status" value={doc.status} />
-            <MetaItem label="Ingestion Mode" value={doc.ingestion_mode} />
+            <MetaItem label="Status" value={titleCase(doc.status)} />
+            <MetaItem label="Ingestion mode" value={titleCase(doc.ingestion_mode)} />
             <MetaItem label="Extractor" value={doc.extractor_name ?? "none"} />
             <MetaItem label="Pages" value={String(doc.page_count)} />
             <MetaItem label="Text Blocks" value={String(doc.text_block_count)} />
@@ -176,8 +179,8 @@ export default function DocumentReviewClient({
         {review.pages.length === 0 ? (
           <section style={{ ...cardStyle, marginTop: "1rem" }}>
             <p style={mutedTextStyle}>
-              No page artifacts were produced during ingestion. There is nothing
-              to review.
+              No page content was extracted from this document. Try re-uploading
+              with OCR enabled, or check the file format.
             </p>
           </section>
         ) : (
@@ -214,7 +217,7 @@ export default function DocumentReviewClient({
               </header>
 
               {pageLoading ? (
-                <div style={panelStyle}>Loading page...</div>
+                <div style={panelStyle}>Loading page content…</div>
               ) : page ? (
                 <>
                   <PageViewer
@@ -351,7 +354,7 @@ function BlockOverlay({ block }: { block: TextBlockArtifact }) {
         strokeWidth="1"
       >
         <title>
-          {block.block_id}
+          Block
           {block.confidence != null
             ? ` (confidence: ${(block.confidence * 100).toFixed(1)}%)`
             : ""}
@@ -374,7 +377,7 @@ function BlockOverlay({ block }: { block: TextBlockArtifact }) {
         strokeWidth="1"
       >
         <title>
-          {block.block_id}
+          Block
           {block.confidence != null
             ? ` (confidence: ${(block.confidence * 100).toFixed(1)}%)`
             : ""}
@@ -392,7 +395,7 @@ function TextBlockInspector({ blocks }: { blocks: TextBlockArtifact[] }) {
   if (blocks.length === 0) {
     return (
       <div style={{ ...panelStyle, marginTop: "1rem" }}>
-        No text blocks on this page.
+        No text blocks on this page. This is normal for image-only or blank pages.
       </div>
     );
   }
@@ -414,7 +417,7 @@ function TextBlockInspector({ blocks }: { blocks: TextBlockArtifact[] }) {
                 }
                 style={blockHeaderButtonStyle}
               >
-                <span style={blockIdStyle}>{block.block_id}</span>
+                <span style={blockIdStyle}>Block {blocks.indexOf(block) + 1}</span>
                 <span style={blockMetaBadgeStyle}>
                   {block.geometry_source}
                   {block.confidence != null &&

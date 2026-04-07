@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { SessionUser } from "@casegraph/agent-sdk";
 import { auth } from "@/lib/auth/config";
 import ReleasesClient from "./releases-client";
+
+export const metadata: Metadata = { title: "Releases" };
 
 export default async function ReleasesPage({
   params,

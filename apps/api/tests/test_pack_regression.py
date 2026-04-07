@@ -18,13 +18,11 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session
 
 from casegraph_agent_sdk.readiness import ChecklistResponse
 
-from app.domains.packs import build_default_domain_pack_registry, domain_pack_registry
+from app.domains.packs import domain_pack_registry
 from app.workflow_packs.registry import (
-    build_default_workflow_pack_registry,
     get_workflow_pack_registry,
 )
 

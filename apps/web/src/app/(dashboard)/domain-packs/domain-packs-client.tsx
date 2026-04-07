@@ -37,7 +37,7 @@ export default function DomainPackExplorerClient() {
       .catch((err) => {
         if (!cancelled)
           setError(
-            err instanceof Error ? err.message : "Unable to load domain packs."
+            err instanceof Error ? err.message : "Unable to load domain packs. Try refreshing the page."
           );
       })
       .finally(() => {
@@ -98,10 +98,8 @@ export default function DomainPackExplorerClient() {
           <p style={breadcrumbStyle}>Platform</p>
           <h1 style={titleStyle}>Domain Packs</h1>
           <p style={subtitleStyle}>
-            Browse registered domain packs, case type templates, workflow
-            bindings, extraction bindings, and document requirements across
-            jurisdictions. This is a structured operational metadata layer —
-            not a rules engine or compliance system.
+            Browse domain packs, case types, workflow bindings, and document
+            requirements.
           </p>
         </header>
 

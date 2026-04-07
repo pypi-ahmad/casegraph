@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useCallback, useEffect, useState } from "react";
 import type {
   ReleaseBundleRecord,
@@ -11,6 +12,7 @@ import type {
   WorkStatusSummary,
 } from "@casegraph/agent-sdk";
 import { WorkStatusSnapshot } from "@/components/work-management/work-status-panels";
+import { titleCase } from "@/lib/display-labels";
 import {
   createRelease,
   fetchReleaseEligibility,
@@ -76,7 +78,7 @@ export default function ReleasesClient({ caseId, currentUser }: { caseId: string
         setSelectedRelease(result.release);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Release creation failed. Please try again.");
+      setError(e instanceof Error ? e.message : "Release creation failed. Ensure a signed-off snapshot is available and try again.");
     } finally {
       setCreating(false);
     }
@@ -99,7 +101,9 @@ export default function ReleasesClient({ caseId, currentUser }: { caseId: string
         View and create finalized case releases.
       </p>
 
-      {loading && <p style={mutedStyle}>Loading…</p>}
+      <AiDisclosureBanner />
+
+      {loading && <p style={mutedStyle}>Loading releases…</p>}
       {error && <p style={errorStyle}>{error}</p>}
 
       {workStatus && (
@@ -149,13 +153,12 @@ export default function ReleasesClient({ caseId, currentUser }: { caseId: string
         <section style={sectionStyle}>
           <h2 style={sectionHeadingStyle}>Create release bundle</h2>
           <div style={fieldGroupStyle}>
-            <label style={labelStyle}>Operator ID</label>
+            <label style={labelStyle}>Operator</label>
             <input
               type="text"
-              value={operatorId}
-              onChange={e => setOperatorId(e.target.value)}
-              placeholder="web_operator"
-              style={inputStyle}
+              value={currentUser.name || currentUser.email}
+              readOnly
+              style={{ ...inputStyle, backgroundColor: "#f8fafc", color: "#475569" }}
             />
           </div>
           <div style={fieldGroupStyle}>
@@ -203,7 +206,7 @@ export default function ReleasesClient({ caseId, currentUser }: { caseId: string
       <section style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>Past releases ({releases.length})</h2>
         {releases.length === 0 && !loading && (
-          <p style={mutedStyle}>No releases yet. Complete the review process and create an export to prepare a release.</p>
+          <p style={mutedStyle}>No releases yet. Complete the handoff review and sign off on a snapshot first, then come back here to create a release.</p>
         )}
         {releases.map(r => (
           <div
@@ -216,7 +219,7 @@ export default function ReleasesClient({ caseId, currentUser }: { caseId: string
             onClick={() => setSelectedRelease(r)}
           >
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <strong>{r.status}</strong>
+              <strong>{titleCase(r.status)}</strong>
               <span style={mutedStyle}>{r.created_at}</span>
             </div>
             <p style={{ margin: 0, fontSize: 13 }}>
@@ -224,7 +227,7 @@ export default function ReleasesClient({ caseId, currentUser }: { caseId: string
               {r.note ? ` — ${r.note}` : ""}
             </p>
             <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6c757d" }}>
-              Source snapshot: {r.source.snapshot_id?.slice(0, 12) ?? "—"}…
+              Source: reviewed snapshot
             </p>
           </div>
         ))}
@@ -247,12 +250,10 @@ function ReleaseDetail({
       <button onClick={onClose} style={{ ...btnSmStyle, marginBottom: 8 }}>Close detail</button>
       <table style={tableStyle}>
         <tbody>
-          <Row label="Release ID" value={release.release_id} />
-          <Row label="Status" value={release.status} />
+          <Row label="Status" value={titleCase(release.status)} />
           <Row label="Created by" value={release.created_by} />
           <Row label="Created at" value={release.created_at} />
-          <Row label="Snapshot ID" value={release.source.snapshot_id} />
-          <Row label="Sign-off" value={`${release.source.signoff_status} (by ${release.source.signed_off_by || "—"})`} />
+          <Row label="Sign-off" value={`${titleCase(release.source.signoff_status)} (by ${release.source.signed_off_by || "—"})`} />
           <Row label="Total artifacts" value={String(release.summary.total_artifacts)} />
           <Row label="Generated" value={String(release.summary.generated_artifacts)} />
           <Row label="Skipped" value={String(release.summary.skipped_artifacts)} />
@@ -262,7 +263,7 @@ function ReleaseDetail({
       </table>
 
       <h3 style={{ marginTop: 16, fontSize: 15 }}>Artifacts</h3>
-      {release.artifacts.length === 0 && <p style={mutedStyle}>No artifacts.</p>}
+      {release.artifacts.length === 0 && <p style={mutedStyle}>No artifacts were generated for this release.</p>}
       {release.artifacts.map((a: ReleaseArtifactEntry) => (
         <ArtifactCard key={a.artifact_ref_id} artifact={a} />
       ))}
@@ -279,11 +280,10 @@ function ArtifactCard({ artifact: a }: { artifact: ReleaseArtifactEntry }) {
     <div style={{ ...cardStyle, borderLeft: `3px solid ${borderColor}`, marginBottom: 6 }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <strong>{a.display_label}</strong>
-        <span style={{ fontSize: 12, color: "#6c757d" }}>{a.status}</span>
+        <span style={{ fontSize: 12, color: "#6c757d" }}>{titleCase(a.status)}</span>
       </div>
       <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6c757d" }}>
-        Type: {a.artifact_type} | Source: {a.source_mode}
-        {a.downstream_artifact_id ? ` | ID: ${a.downstream_artifact_id.slice(0, 12)}…` : ""}
+        Type: {titleCase(a.artifact_type)} | Source: {titleCase(a.source_mode)}
       </p>
       {a.notes && a.notes.length > 0 && (
         <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 12 }}>

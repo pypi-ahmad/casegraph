@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from sqlmodel import Session
 
 from casegraph_agent_sdk.annotations import (
@@ -10,12 +9,10 @@ from casegraph_agent_sdk.annotations import (
     AnnotationBody,
     CreateAnnotationRequest,
     UpdateAnnotationRequest,
-    WordArtifact,
 )
 from casegraph_agent_sdk.ingestion import BoundingBoxArtifact, CoordinateSpace
 
 from app.ingestion.models import DocumentRecord
-from app.review.annotation_models import AnnotationModel
 from app.review.annotation_service import AnnotationService
 from app.review.models import PageRecord
 

@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
+  CaseDocumentReference,
   ChecklistItem,
   ExtractedFieldResult,
+  ExtractionFieldDefinition,
   ExtractionValidationsResponse,
   FieldValidationRecord,
   FieldValidationStatus,
@@ -21,6 +25,7 @@ import { fetchCaseDetail } from "@/lib/cases-api";
 import {
   fetchDocumentExtractions,
   fetchExtractionResult,
+  fetchExtractionTemplateDetail,
 } from "@/lib/extraction-api";
 import {
   fetchReviewedCaseState,
@@ -45,6 +50,9 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
   const [requirementReviews, setRequirementReviews] = useState<RequirementReviewsResponse | null>(null);
   const [extractions, setExtractions] = useState<CaseExtractionEntry[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
+  const [fieldDisplayNames, setFieldDisplayNames] = useState<Map<string, string>>(new Map());
+  const [templateDisplayNames, setTemplateDisplayNames] = useState<Map<string, string>>(new Map());
+  const [documentFilenames, setDocumentFilenames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
@@ -63,6 +71,13 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
       setReviewState(stateData);
       setValidations(validationData);
       setRequirementReviews(reviewData);
+
+      // Build document filename lookup from case detail
+      const docFilenameMap = new Map<string, string>();
+      for (const doc of caseDetail.documents) {
+        docFilenameMap.set(doc.document_id, doc.source_file.filename);
+      }
+      setDocumentFilenames(docFilenameMap);
 
       const extractionIds = new Map<string, { extraction_id: string }>();
       for (const validation of validationData.validations) {
@@ -108,6 +123,35 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
       );
       setExtractions(extractionResults.filter((value): value is CaseExtractionEntry => value !== null));
 
+      // Build field display name and template display name lookups
+      const templateIds = new Set(
+        extractionResults
+          .filter((value): value is CaseExtractionEntry => value !== null)
+          .map((entry) => entry.template_id),
+      );
+      const fieldNames = new Map<string, string>();
+      const templateNames = new Map<string, string>();
+      await Promise.all(
+        Array.from(templateIds).map(async (templateId) => {
+          try {
+            const detail = await fetchExtractionTemplateDetail(templateId);
+            templateNames.set(templateId, detail.metadata.display_name);
+            for (const field of detail.schema_definition.fields) {
+              fieldNames.set(`${templateId}/${field.field_id}`, field.display_name);
+              if (field.nested_fields) {
+                for (const nested of field.nested_fields) {
+                  fieldNames.set(`${templateId}/${nested.field_id}`, nested.display_name);
+                }
+              }
+            }
+          } catch {
+            // Template detail is best-effort; field_id will be humanized as fallback.
+          }
+        }),
+      );
+      setFieldDisplayNames(fieldNames);
+      setTemplateDisplayNames(templateNames);
+
       try {
         const checklistData = await fetchChecklist(caseId);
         setChecklistItems(checklistData.checklist.items ?? []);
@@ -129,7 +173,7 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
       await validateField(extractionId, fieldId, { status, reviewed_value: correctedValue, note: "" });
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Validation failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Validation failed. Check the field value and try again.");
     } finally {
       setSubmitting(null);
     }
@@ -141,14 +185,14 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
       await reviewRequirement(caseId, itemId, { status, note });
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Review update failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Requirement review update failed. Try refreshing the page and resubmitting.");
     } finally {
       setSubmitting(null);
     }
   }
 
   if (loading) {
-    return <main style={pageStyle}><section style={containerStyle}><div style={panelStyle}>Loading validation workspace...</div></section></main>;
+    return <main style={pageStyle}><section style={containerStyle}><div style={panelStyle}>Loading validation results…</div></section></main>;
   }
 
   if (error || !reviewState) {
@@ -193,6 +237,8 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
           </div>
         </header>
 
+        <AiDisclosureBanner />
+
         <div style={caseTitleStyle}>{caseTitle}</div>
 
         {/* Review state summary */}
@@ -220,15 +266,19 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
         <section style={sectionCardStyle}>
           <h2 style={sectionTitleStyle}>Extracted Fields</h2>
           {extractions.length === 0 ? (
-            <div style={panelStyle}>No extraction results linked to this case yet.</div>
+            <div style={panelStyle}>No extraction results yet. Upload documents and run extraction from the case workspace to see results here.</div>
           ) : (
             <div style={stackStyle}>
               {extractions.map((ext) => (
                 <div key={ext.extraction_id} style={extractionGroupStyle}>
                   <div style={extractionHeaderStyle}>
                     <div style={stackedHeaderStyle}>
-                      <span style={monoLabelStyle}>{ext.template_id}</span>
-                      <span style={metaTextStyle}>{ext.extraction_id}</span>
+                      <span style={{ fontWeight: 600, color: "#102033", fontSize: "0.9rem" }}>
+                        {templateDisplayNames.get(ext.template_id) || titleCase(ext.template_id)}
+                      </span>
+                      {documentFilenames.get(ext.document_id) && (
+                        <span style={metaTextStyle}>{documentFilenames.get(ext.document_id)}</span>
+                      )}
                     </div>
                     <Link href={`/documents/${ext.document_id}`} style={secondaryLinkStyle}>Open document review</Link>
                   </div>
@@ -237,12 +287,14 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
                       const key = `${ext.extraction_id}/${field.field_id}`;
                       const validation = validationMap.get(key);
                       const isSubmitting = submitting === key;
+                      const displayName = fieldDisplayNames.get(`${ext.template_id}/${field.field_id}`) || null;
                       return (
                         <FieldRow
                           key={key}
                           extractionId={ext.extraction_id}
                           documentId={ext.document_id}
                           field={field}
+                          displayName={displayName}
                           validation={validation ?? null}
                           isSubmitting={isSubmitting}
                           onValidate={handleValidateField}
@@ -260,7 +312,7 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
         <section style={sectionCardStyle}>
           <h2 style={sectionTitleStyle}>Requirement Review</h2>
           {checklistItems.length === 0 ? (
-            <div style={panelStyle}>No checklist items for this case yet.</div>
+            <div style={panelStyle}>No checklist items yet. Set up a domain pack with requirements to enable the checklist.</div>
           ) : (
             <div style={stackStyle}>
               {checklistItems.map((item) => {
@@ -271,6 +323,7 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
                     key={item.item_id}
                     item={item}
                     review={review ?? null}
+                    documentFilenames={documentFilenames}
                     isSubmitting={isSubmitting}
                     onReview={handleReviewRequirement}
                   />
@@ -287,9 +340,9 @@ export default function ValidationClient({ caseId }: { caseId: string }) {
             <div style={stackStyle}>
               {state.unresolved_items.map((item, idx) => (
                 <div key={idx} style={unresolvedCardStyle}>
-                  <span style={badgeStyle}>{item.item_type}</span>
-                  <span style={monoLabelStyle}>{item.display_label}</span>
-                  <span style={metaTextStyle}>{item.current_status}</span>
+                  <span style={badgeStyle}>{titleCase(item.item_type)}</span>
+                  <span style={{ fontWeight: 600, color: "#102033", fontSize: "0.85rem" }}>{item.display_label}</span>
+                  <span style={metaTextStyle}>{titleCase(item.current_status)}</span>
                   {item.note && <span style={metaTextStyle}>{item.note}</span>}
                 </div>
               ))}
@@ -309,6 +362,7 @@ function FieldRow({
   extractionId,
   documentId,
   field,
+  displayName,
   validation,
   isSubmitting,
   onValidate,
@@ -316,6 +370,7 @@ function FieldRow({
   extractionId: string;
   documentId: string;
   field: ExtractedFieldResult;
+  displayName: string | null;
   validation: FieldValidationRecord | null;
   isSubmitting: boolean;
   onValidate: (extractionId: string, fieldId: string, status: FieldValidationStatus, correctedValue?: unknown) => void;
@@ -335,17 +390,17 @@ function FieldRow({
   return (
     <div style={fieldRowStyle}>
       <div style={fieldInfoStyle}>
-        <div style={fieldNameStyle}>{field.field_id}</div>
+        <div style={fieldNameStyle}>{displayName || formatFieldId(field.field_id)}</div>
         <div style={fieldValueStyle}>
           {field.is_present ? displayValue : <span style={missingStyle}>(not extracted)</span>}
         </div>
         <div style={fieldMetaStyle}>
-          <span style={typeBadgeStyle}>{field.field_type}</span>
+          <span style={typeBadgeStyle}>{titleCase(field.field_type)}</span>
           {validation?.status === "corrected" && (
             <span style={correctedBadgeStyle}>Original: {stringifyValue(validation.original.value)}</span>
           )}
           {grounding.length > 0 && (
-            <span style={groundingBadgeStyle}>{field.grounding.length} grounding ref(s)</span>
+            <span style={groundingBadgeStyle}>{field.grounding.length} source reference(s)</span>
           )}
           <Link href={`/documents/${primaryGrounding.document_id}`} style={contextLinkStyle}>
             Source context{primaryGrounding.page_number ? ` (p.${primaryGrounding.page_number})` : ""}
@@ -370,12 +425,13 @@ function FieldRow({
               type="text"
               value={correctedValue}
               onChange={(e) => setCorrectedValue(e.target.value)}
-              placeholder="Corrected value"
-              style={inputStyle}
+              placeholder="Enter corrected value"
+              style={correctedValue.trim() ? inputStyle : { ...inputStyle, borderColor: "#fbbf24" }}
             />
             <button
               type="button"
               style={primaryButtonStyle}
+              disabled={!correctedValue.trim()}
               onClick={() => { onValidate(extractionId, field.field_id, "corrected", correctedValue); setShowCorrection(false); setCorrectedValue(""); }}
             >
               Save correction
@@ -396,11 +452,13 @@ function RequirementRow({
   item,
   review,
   isSubmitting,
+  documentFilenames,
   onReview,
 }: {
   item: ChecklistItem;
   review: RequirementReviewRecord | null;
   isSubmitting: boolean;
+  documentFilenames: Map<string, string>;
   onReview: (itemId: string, status: RequirementReviewStatus, note: string) => void;
 }) {
   const [note, setNote] = useState(review?.note ?? "");
@@ -417,13 +475,13 @@ function RequirementRow({
         {item.description && <div style={metaTextStyle}>{item.description}</div>}
         <div style={fieldMetaStyle}>
           <span style={typeBadgeStyle}>{item.priority}</span>
-          <span style={typeBadgeStyle}>Machine: {review?.original_machine_status || item.status}</span>
+          <span style={typeBadgeStyle}>Auto-detected: {titleCase(review?.original_machine_status || item.status)}</span>
         </div>
         {review && review.linked_document_ids.length > 0 && (
           <div style={fieldMetaStyle}>
             {review.linked_document_ids.map((documentId) => (
               <Link key={documentId} href={`/documents/${documentId}`} style={contextLinkStyle}>
-                Review document {documentId}
+                {documentFilenames.get(documentId) || "Document"}
               </Link>
             ))}
           </div>
@@ -485,7 +543,7 @@ function StatusBadge({ status }: { status: string }) {
   const colors = colorMap[status] ?? { bg: "#e2e8f0", fg: "#475569" };
   return (
     <span style={{ ...statusBadgeBaseStyle, backgroundColor: colors.bg, color: colors.fg }}>
-      {labelMap[status] ?? status.replace(/_/g, " ")}
+      {labelMap[status] ?? titleCase(status)}
     </span>
   );
 }
@@ -498,6 +556,10 @@ function stringifyValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "string") return value;
   try { return JSON.stringify(value); } catch { return String(value); }
+}
+
+function formatFieldId(fieldId: string): string {
+  return titleCase(fieldId);
 }
 
 function getPrimaryGrounding(

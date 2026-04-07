@@ -11,8 +11,6 @@ Composes:
 from __future__ import annotations
 
 import logging
-from datetime import UTC
-from uuid import uuid4
 
 from sqlmodel import Session, desc, select
 
@@ -23,8 +21,6 @@ from casegraph_agent_sdk.evals import (
     EvalRunDetailResponse,
     EvalRunRecord,
     EvalRunResponse,
-    EvalRunStatus,
-    EvalSuiteDefinition,
     EvalSuiteDetailResponse,
     EvalSuiteListResponse,
     IntegrationInfo,

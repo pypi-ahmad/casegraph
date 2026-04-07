@@ -171,7 +171,6 @@ class TestObservabilityWiring:
         from app.main import app
         from app.observability.middleware import RequestLoggingMiddleware
 
-        middleware_types = [type(m) for m in getattr(app, "user_middleware", [])]
         # Starlette stores middleware as Middleware objects with .cls
         middleware_classes = [
             m.cls for m in getattr(app, "user_middleware", [])

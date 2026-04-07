@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { SessionUser } from "@casegraph/agent-sdk";
 import { auth } from "@/lib/auth/config";
 import SubmissionDraftsClient from "./submission-drafts-client";
+
+export const metadata: Metadata = { title: "Submission Drafts" };
 
 export default async function SubmissionDraftsPage({
   params,

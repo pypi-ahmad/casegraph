@@ -16,7 +16,6 @@ Labels
 from __future__ import annotations
 
 from casegraph_agent_sdk.platform import (
-    ModuleMaturity,
     ModuleStatusEntry,
     PlatformStatusResponse,
 )

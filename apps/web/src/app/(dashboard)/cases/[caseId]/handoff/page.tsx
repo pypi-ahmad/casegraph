@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { SessionUser } from "@casegraph/agent-sdk";
 import { auth } from "@/lib/auth/config";
 import HandoffClient from "./handoff-client";
+
+export const metadata: Metadata = { title: "Handoff" };
 
 export default async function HandoffPage({
   params,

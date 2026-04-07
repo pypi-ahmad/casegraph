@@ -38,7 +38,7 @@ export default function KnowledgeInspectorClient() {
         if (!cancelled) setCapabilities(data);
       } catch (err) {
         if (!cancelled)
-          setCapsError(err instanceof Error ? err.message : "Failed to load capabilities.");
+          setCapsError(err instanceof Error ? err.message : "Unable to load knowledge capabilities. Try refreshing the page.");
       } finally {
         if (!cancelled) setCapsLoading(false);
       }
@@ -83,7 +83,7 @@ export default function KnowledgeInspectorClient() {
       const result = await indexDocument(ingestionResult.output);
       setIndexResult(result);
     } catch (err) {
-      setIndexError(err instanceof Error ? err.message : "Indexing failed.");
+      setIndexError(err instanceof Error ? err.message : "Indexing failed. Check the file format and try again.");
     } finally {
       setIndexing(false);
     }
@@ -115,7 +115,7 @@ export default function KnowledgeInspectorClient() {
       });
       setSearchResult(result);
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : "Search failed.");
+      setSearchError(err instanceof Error ? err.message : "Search failed. Try a different query or check that documents have been indexed.");
     } finally {
       setSearching(false);
     }
@@ -131,8 +131,8 @@ export default function KnowledgeInspectorClient() {
           <p style={breadcrumbStyle}>Knowledge</p>
           <h1 style={titleStyle}>Retrieval Inspector</h1>
           <p style={subtitleStyle}>
-            Index ingested documents into the vector store and perform semantic
-            search over the knowledge base. No fake results — search is real.
+            Index ingested documents into the vector store and search across
+            your knowledge base.
           </p>
         </header>
 

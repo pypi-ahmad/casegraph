@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { titleCase } from "@/lib/display-labels";
 
 import type {
   ExtractionResult,
@@ -65,7 +67,7 @@ export default function ExtractionLabClient() {
       .catch((err) => {
         if (!cancelled)
           setError(
-            err instanceof Error ? err.message : "Unable to load data.",
+            err instanceof Error ? err.message : "Unable to load extraction templates and documents. Try refreshing the page.",
           );
       })
       .finally(() => {
@@ -100,7 +102,7 @@ export default function ExtractionLabClient() {
       setResult(resp.result);
     } catch (err) {
       setExecuteError(
-        err instanceof Error ? err.message : "Extraction failed.",
+        err instanceof Error ? err.message : "Extraction failed. Check the selected template and document, then try again.",
       );
     } finally {
       setExecuting(false);
@@ -144,6 +146,8 @@ export default function ExtractionLabClient() {
           </p>
         </header>
 
+        <AiDisclosureBanner />
+
         {/* Configuration form */}
         <section style={cardStyle}>
           <h2 style={sectionTitleStyle}>Configure Extraction</h2>
@@ -167,7 +171,7 @@ export default function ExtractionLabClient() {
                 <option value="">Select a template</option>
                 {templates.map((t) => (
                   <option key={t.template_id} value={t.template_id}>
-                    {t.display_name} ({t.template_id})
+                    {t.display_name}
                   </option>
                 ))}
               </select>
@@ -183,7 +187,7 @@ export default function ExtractionLabClient() {
                 <option value="">Select a document</option>
                 {completedDocuments.map((d) => (
                   <option key={d.document_id} value={d.document_id}>
-                    {d.source_file.filename} ({d.document_id.slice(0, 8)}...)
+                    {d.source_file.filename}
                   </option>
                 ))}
               </select>
@@ -290,9 +294,9 @@ function ExtractionResultView({ result }: { result: ExtractionResult }) {
           <MetaItem label="Extraction ID" value={result.run.extraction_id} />
           <MetaItem
             label="Status"
-            value={result.run.status}
+            value={titleCase(result.run.status)}
           />
-          <MetaItem label="Strategy" value={result.run.strategy_used} />
+          <MetaItem label="Strategy" value={titleCase(result.run.strategy_used)} />
           <MetaItem
             label="Provider"
             value={result.run.provider ?? "none"}

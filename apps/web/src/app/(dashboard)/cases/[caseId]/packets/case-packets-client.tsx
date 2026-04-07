@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { readinessLabel, sourceModeLabel, stageLabel, titleCase } from "@/lib/display-labels";
 
 import type {
   DownstreamSourceMode,
@@ -80,14 +81,14 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
         source_mode: sourceMode,
         reviewed_snapshot_id: sourceMode === "reviewed_snapshot" ? reviewedSnapshotId : "",
       });
-      setMessage(response.result.message || "Packet generated.");
+      setMessage(response.result.message || "Export package created. Select it below to review its contents.");
       setNote("");
       if (response.packet) {
         setPackets((prev) => [response.packet!, ...prev]);
       }
       await load();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to create export. Please try again.");
+      setMessage(err instanceof Error ? err.message : "Unable to create export. Ensure the case has linked documents and try again.");
     } finally {
       setWorking(false);
     }
@@ -104,7 +105,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
       setSelectedManifest(detail.manifest);
       setSelectedArtifacts(arts.artifacts);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Unable to load export details. Please try again.");
+      setMessage(err instanceof Error ? err.message : "Unable to load export details. Try selecting the export again.");
     } finally {
       setWorking(false);
     }
@@ -140,19 +141,19 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
           <h2 style={sectionTitleStyle}>Generate New Packet</h2>
           <form onSubmit={handleGenerate} style={formStyle}>
             <label style={fieldStyle}>
-              <span style={labelStyle}>Source Mode</span>
+              <span style={labelStyle}>Data Source</span>
               <select
                 value={sourceMode}
                 onChange={(event) => setSourceMode(event.target.value as DownstreamSourceMode)}
                 style={inputStyle}
               >
-                <option value="live_case_state">Live case state</option>
-                <option value="reviewed_snapshot">Reviewed snapshot</option>
+                <option value="live_case_state">Current case data</option>
+                <option value="reviewed_snapshot">Approved review version</option>
               </select>
             </label>
             {sourceMode === "reviewed_snapshot" && (
               <label style={fieldStyle}>
-                <span style={labelStyle}>Reviewed Snapshot</span>
+                <span style={labelStyle}>Approved Review</span>
                 <select
                   value={reviewedSnapshotId}
                   onChange={(event) => setReviewedSnapshotId(event.target.value)}
@@ -161,7 +162,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
                   <option value="">Use selected or latest eligible snapshot</option>
                   {reviewedSnapshots.map((snapshot) => (
                     <option key={snapshot.snapshot_id} value={snapshot.snapshot_id}>
-                      {snapshot.snapshot_id.slice(0, 12)}… • {snapshot.signoff_status.replace(/_/g, " ")}
+                      Snapshot {reviewedSnapshots.indexOf(snapshot) + 1} • {titleCase(snapshot.signoff_status)}
                     </option>
                   ))}
                 </select>
@@ -183,7 +184,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
           {sourceMode === "reviewed_snapshot" && handoffEligibility && (
             <div style={{ ...subtlePanelStyle, marginTop: "0.75rem" }}>
               <p style={metaTextStyle}>
-                Handoff gate: {handoffEligibility.release_gate_status.replace(/_/g, " ")}
+                Handoff gate: {titleCase(handoffEligibility.release_gate_status)}
               </p>
               {handoffEligibility.reasons.map((reason) => (
                 <p key={reason.code} style={metaTextStyle}>
@@ -195,7 +196,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
         </section>
 
         {loading ? (
-          <div style={panelStyle}>Loading packets...</div>
+          <div style={panelStyle}>Loading export packages…</div>
         ) : error ? (
           <div style={errorPanelStyle}>{error}</div>
         ) : (
@@ -218,13 +219,11 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
                     >
                       <div style={itemHeaderStyle}>
                         <strong>{p.case_title || p.case_id}</strong>
-                        <span style={badgeStyle}>{p.current_stage.replace(/_/g, " ")}</span>
+                        <span style={badgeStyle}>{stageLabel(p.current_stage)}</span>
                       </div>
                       <div style={metaGridStyle}>
-                        <span>Packet ID</span><span style={monoStyle}>{p.packet_id.slice(0, 12)}…</span>
-                        <span>Source mode</span><span>{describeSourceMode(p.source_mode)}</span>
-                        <span>Reviewed snapshot</span><span style={monoStyle}>{p.source_reviewed_snapshot_id ? `${p.source_reviewed_snapshot_id.slice(0, 12)}…` : "None"}</span>
-                        <span>Readiness</span><span>{p.readiness_status?.replace(/_/g, " ") ?? "Not evaluated"}</span>
+                        <span>Data source</span><span>{describeSourceMode(p.source_mode)}</span>
+                        <span>Readiness</span><span>{p.readiness_status ? readinessLabel(p.readiness_status) : "Not evaluated"}</span>
                         <span>Sections</span><span>{p.section_count}</span>
                         <span>Artifacts</span><span>{p.artifact_count}</span>
                         <span>Generated</span><span>{formatTimestamp(p.generated_at)}</span>
@@ -240,16 +239,14 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
               <section style={sectionCardStyle}>
                 <h2 style={sectionTitleStyle}>Packet Manifest</h2>
                 <div style={metaGridStyle}>
-                  <span>Packet ID</span><span style={monoStyle}>{selectedManifest.packet_id.slice(0, 12)}…</span>
                   <span>Case</span><span>{selectedManifest.case_title}</span>
                   <span>Status</span><span>{selectedManifest.case_status}</span>
-                  <span>Stage</span><span>{selectedManifest.current_stage.replace(/_/g, " ")}</span>
-                  <span>Source mode</span><span>{describeSourceMode(selectedManifest.source_mode)}</span>
-                  <span>Reviewed snapshot</span><span style={monoStyle}>{selectedManifest.source_reviewed_snapshot_id || "None"}</span>
-                  <span>Snapshot sign-off</span><span>{selectedManifest.source_snapshot_signoff_status.replace(/_/g, " ")}</span>
+                  <span>Stage</span><span>{stageLabel(selectedManifest.current_stage)}</span>
+                  <span>Data source</span><span>{describeSourceMode(selectedManifest.source_mode)}</span>
+                  <span>Snapshot sign-off</span><span>{titleCase(selectedManifest.source_snapshot_signoff_status)}</span>
                   <span>Domain Pack</span><span>{selectedManifest.domain_pack_id ?? "None"}</span>
                   <span>Case Type</span><span>{selectedManifest.case_type_id ?? "None"}</span>
-                  <span>Readiness</span><span>{selectedManifest.readiness_status?.replace(/_/g, " ") ?? "Not evaluated"}</span>
+                  <span>Readiness</span><span>{selectedManifest.readiness_status ? readinessLabel(selectedManifest.readiness_status) : "Not evaluated"}</span>
                   <span>Documents</span><span>{selectedManifest.linked_document_count}</span>
                   <span>Extractions</span><span>{selectedManifest.extraction_count}</span>
                   <span>Open Actions</span><span>{selectedManifest.open_action_count}</span>
@@ -274,7 +271,7 @@ export default function CasePacketsClient({ caseId }: { caseId: string }) {
                     <article key={art.artifact_id} style={itemCardStyle}>
                       <div style={itemHeaderStyle}>
                         <strong>{art.filename}</strong>
-                        <span style={badgeStyle}>{art.format.replace(/_/g, " ")}</span>
+                        <span style={badgeStyle}>{titleCase(art.format)}</span>
                       </div>
                       <div style={metaGridStyle}>
                         <span>Format</span><span>{art.format}</span>
@@ -330,7 +327,7 @@ function formatTimestamp(value: string): string {
 }
 
 function describeSourceMode(value: DownstreamSourceMode): string {
-  return value === "reviewed_snapshot" ? "Reviewed snapshot" : "Live case state";
+  return sourceModeLabel(value);
 }
 
 const pageStyle: CSSProperties = {

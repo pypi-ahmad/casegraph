@@ -5,21 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine
 
 from casegraph_agent_sdk.extraction import (
-    DocumentExtractionListResponse,
     ExtractedFieldResult,
     ExtractionFieldDefinition,
     ExtractionRequest,
-    ExtractionResult,
-    ExtractionRunMetadata,
     ExtractionSchemaDefinition,
     ExtractionTemplateMetadata,
-    GroundingReference,
 )
 from casegraph_agent_sdk.ingestion import (
-    BoundingBoxArtifact,
     CoordinateSpace,
     GeometrySource,
 )

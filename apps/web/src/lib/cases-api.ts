@@ -37,7 +37,7 @@ export async function fetchCases(): Promise<CaseListResponse> {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load cases."));
+    throw new Error(await getErrorMessage(response, "Unable to load cases. Check your network connection and try refreshing."));
   }
   return (await response.json()) as CaseListResponse;
 }
@@ -49,7 +49,7 @@ export async function createCase(payload: CreateCaseRequest): Promise<CaseRecord
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to create case."));
+    throw new Error(await getErrorMessage(response, "Unable to create case. Verify the form fields and try again."));
   }
   return (await response.json()) as CaseRecord;
 }
@@ -60,7 +60,7 @@ export async function fetchCaseDetail(caseId: string): Promise<CaseDetailRespons
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load case detail."));
+    throw new Error(await getErrorMessage(response, "Unable to load case detail. The case may have been removed or is temporarily unavailable."));
   }
   return (await response.json()) as CaseDetailResponse;
 }
@@ -75,7 +75,7 @@ export async function updateCase(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to update case."));
+    throw new Error(await getErrorMessage(response, "Unable to update case. Review your changes and try again."));
   }
   return (await response.json()) as CaseRecord;
 }
@@ -94,7 +94,7 @@ export async function fetchPersistedDocuments(options?: {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load documents."));
+    throw new Error(await getErrorMessage(response, "Unable to load documents. Try refreshing the page."));
   }
   return (await response.json()) as DocumentRegistryListResponse;
 }
@@ -109,7 +109,7 @@ export async function linkCaseDocument(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to link document."));
+    throw new Error(await getErrorMessage(response, "Unable to link document. Verify the document has completed ingestion."));
   }
 }
 
@@ -123,7 +123,7 @@ export async function createWorkflowRunRecord(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to create run record."));
+    throw new Error(await getErrorMessage(response, "Unable to create run record. Ensure a workflow is selected."));
   }
   return (await response.json()) as WorkflowRunRecord;
 }

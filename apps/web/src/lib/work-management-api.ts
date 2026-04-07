@@ -57,7 +57,7 @@ export async function fetchWorkQueue(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load work queue."));
+    throw new Error(await getErrorMessage(response, "Unable to load work queue. Try refreshing the page."));
   }
   return (await response.json()) as WorkQueueResponse;
 }
@@ -70,7 +70,7 @@ export async function fetchWorkSummary(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load work summary."));
+    throw new Error(await getErrorMessage(response, "Unable to load work summary. Try refreshing the page."));
   }
   return (await response.json()) as WorkSummaryResponse;
 }
@@ -83,7 +83,7 @@ export async function fetchCaseWorkStatus(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load case work status."));
+    throw new Error(await getErrorMessage(response, "Unable to load case work status. Try refreshing the page."));
   }
   return (await response.json()) as CaseWorkStatusResponse;
 }
@@ -96,7 +96,7 @@ export async function fetchAssignmentHistory(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to load assignment history."));
+    throw new Error(await getErrorMessage(response, "Unable to load assignment history. Try refreshing the page."));
   }
   return (await response.json()) as AssignmentHistoryResponse;
 }
@@ -111,7 +111,7 @@ export async function updateCaseAssignment(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to update case assignment."));
+    throw new Error(await getErrorMessage(response, "Unable to update assignment. Verify the selected operator and try again."));
   }
   return (await response.json()) as CaseAssignmentResponse;
 }
@@ -126,7 +126,7 @@ export async function updateCaseSLA(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response, "Unable to update case deadline."));
+    throw new Error(await getErrorMessage(response, "Unable to update deadline. Confirm that the due date is valid and try again."));
   }
   return (await response.json()) as CaseSLAResponse;
 }

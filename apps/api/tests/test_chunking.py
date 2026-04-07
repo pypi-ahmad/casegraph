@@ -1,7 +1,6 @@
 """Unit tests for the chunking pipeline."""
 
 from casegraph_agent_sdk.ingestion import (
-    CoordinateSpace,
     DocumentProcessingStatus,
     FileTypeClassification,
     GeometrySource,

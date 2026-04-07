@@ -258,11 +258,6 @@ class TestEvaluate:
 
         result = svc.evaluate(case.case_id)
 
-        # Find the identity requirement item.
-        identity_items = [
-            i for i in result.readiness.missing_required
-            if "identity" in i.display_name.lower()
-        ]
         # At least the items with documents should not be missing anymore.
         assert result.readiness.partially_supported_items > 0 or result.readiness.supported_items > 0
 

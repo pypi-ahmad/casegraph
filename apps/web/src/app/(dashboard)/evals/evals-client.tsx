@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 import type {
   EvalCapabilitiesResponse,
   EvalSuiteListResponse,
@@ -43,7 +44,7 @@ export default function EvalsClient() {
       setCapabilities(caps);
       setSuites(sts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load eval data.");
+      setError(err instanceof Error ? err.message : "Unable to load eval data. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ export default function EvalsClient() {
     } catch (err) {
       setLastRun({
         success: false,
-        message: err instanceof Error ? err.message : "Run failed.",
+        message: err instanceof Error ? err.message : "Eval run failed. Check your configuration and try again.",
         run: { run_id: "", suite_id: suiteId, status: "failed", case_results: [], total_cases: 0, passed_cases: 0, failed_cases: 0, error_cases: 0, skipped_cases: 0, started_at: "", completed_at: "", duration_ms: 0, notes: [] } as EvalRunRecord,
       });
     } finally {
@@ -74,8 +75,8 @@ export default function EvalsClient() {
         <p style={breadcrumbStyle}>Evals</p>
         <h1 style={titleStyle}>Evaluation Workspace</h1>
         <p style={subtitleStyle}>
-          Workflow regression suites, provider comparison metadata, and
-          observability integrations. Seed coverage — not full production benchmarks.
+          Run evaluation suites, compare provider results, and track quality
+          over time.
         </p>
       </section>
 
@@ -159,7 +160,7 @@ function SuiteCard({
       <div style={suiteHeaderStyle}>
         <div>
           <span style={suiteTitleStyle}>{suite.display_name}</span>
-          <span style={categoryBadgeStyle}>{suite.category.replace(/_/g, " ")}</span>
+          <span style={categoryBadgeStyle}>{titleCase(suite.category)}</span>
           <span style={countBadgeStyle}>{suite.cases.length} cases</span>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -220,7 +221,7 @@ function RunResultPanel({ run, message }: { run: EvalRunRecord; message: string 
   return (
     <div style={runPanelStyle}>
       <div style={runHeaderStyle}>
-        <span style={{ ...statusBadge, backgroundColor: statusColor }}>{run.status}</span>
+        <span style={{ ...statusBadge, backgroundColor: statusColor }}>{titleCase(run.status)}</span>
         <span style={runStatsStyle}>
           {run.passed_cases} passed · {run.failed_cases} failed · {run.error_cases} errors · {run.duration_ms.toFixed(0)}ms
         </span>
@@ -322,7 +323,7 @@ function BenchmarkCard({ suite }: { suite: BenchmarkSuiteMeta }) {
     <div style={cardStyle}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={cardTitleStyle}>{suite.display_name}</span>
-        <span style={categoryBadgeStyle}>{suite.category.replace(/_/g, " ")}</span>
+        <span style={categoryBadgeStyle}>{titleCase(suite.category)}</span>
       </div>
       <p style={cardDescStyle}>{suite.description}</p>
       <code style={codeStyle}>{suite.config_path}</code>

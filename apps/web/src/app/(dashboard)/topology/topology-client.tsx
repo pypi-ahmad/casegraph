@@ -39,7 +39,7 @@ export default function TopologyClient() {
       setEdges(graph.edges);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Unable to load topology.",
+        err instanceof Error ? err.message : "Unable to load topology. Check that the API server is running.",
       );
     } finally {
       setLoading(false);
@@ -79,12 +79,11 @@ export default function TopologyClient() {
         <p style={breadcrumbStyle}>Topology</p>
         <h1 style={titleStyle}>Visual Flow Inspector</h1>
         <p style={subtitleStyle}>
-          Graph topology of registered agents, workflows, and their
-          relationships. Derived from live runtime metadata. Inspection only —
-          editing is not implemented.
+          Graph of registered agents, workflows, and their relationships.
+          Built from live runtime metadata.
         </p>
         <div style={{ padding: "0.6rem 1rem", borderRadius: "8px", backgroundColor: "#fef3c7", border: "1px solid #fde68a", color: "#92400e", fontSize: "0.85rem", marginTop: "0.75rem" }}>
-          <strong>Scaffolded module</strong> — This graph is built from agent-runtime metadata. It reflects registered definitions only, not live execution state. Requires the agent-runtime to be running.
+          <strong>Live connection</strong> — This graph shows agents and workflows registered in your runtime. It reflects definitions, not live execution.
         </div>
       </section>
 

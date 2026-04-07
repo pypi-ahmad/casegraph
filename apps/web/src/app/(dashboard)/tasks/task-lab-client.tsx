@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AiDisclosureBanner from "@/components/ai-disclosure-banner";
 import type { CSSProperties, FormEvent } from "react";
 
 import type {
@@ -82,7 +83,7 @@ export default function TaskLabClient() {
       setModels(res.models);
       if (res.models.length > 0) setSelectedModelId(res.models[0].model_id);
     } catch (err) {
-      setModelsError(err instanceof Error ? err.message : "Failed to load models.");
+      setModelsError(err instanceof Error ? err.message : "Unable to fetch models. Verify your API key and try again.");
     } finally {
       setModelsLoading(false);
     }
@@ -111,7 +112,7 @@ export default function TaskLabClient() {
       setResult(res.result);
       setEvents(res.events);
     } catch (err) {
-      setExecError(err instanceof Error ? err.message : "Execution failed.");
+      setExecError(err instanceof Error ? err.message : "Task execution failed. Check your API key and model selection, then try again.");
     } finally {
       setExecuting(false);
     }
@@ -137,6 +138,8 @@ export default function TaskLabClient() {
           </p>
         </header>
 
+        <AiDisclosureBanner />
+
         <div style={layoutStyle}>
           {/* --- Configuration --- */}
           <form onSubmit={handleExecute} style={sectionCardStyle}>
@@ -146,7 +149,7 @@ export default function TaskLabClient() {
               <span style={labelStyle}>Task</span>
               <select value={selectedTaskId} onChange={(e) => setSelectedTaskId(e.target.value)} style={inputStyle}>
                 {tasks.map((t) => (
-                  <option key={t.task_id} value={t.task_id}>{t.display_name} ({t.task_id})</option>
+                  <option key={t.task_id} value={t.task_id}>{t.display_name}</option>
                 ))}
               </select>
             </label>
@@ -162,7 +165,7 @@ export default function TaskLabClient() {
               <span style={labelStyle}>Provider</span>
               <select value={selectedProvider} onChange={(e) => { setSelectedProvider(e.target.value); setModels([]); setSelectedModelId(""); }} style={inputStyle}>
                 {providers.map((p) => (
-                  <option key={p.id} value={p.id}>{p.display_name} ({p.id})</option>
+                  <option key={p.id} value={p.id}>{p.display_name}</option>
                 ))}
               </select>
             </label>

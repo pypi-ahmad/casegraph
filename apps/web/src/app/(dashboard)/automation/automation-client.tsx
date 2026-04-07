@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { titleCase } from "@/lib/display-labels";
 import type {
   AutomationCapabilitiesResponse,
   ToolMetadata,
@@ -22,7 +23,7 @@ export default function AutomationClient() {
       setData(await fetchAutomationCapabilities());
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Unable to load automation capabilities.",
+        err instanceof Error ? err.message : "Unable to load automation capabilities. Try refreshing the page.",
       );
     } finally {
       setLoading(false);
@@ -39,12 +40,11 @@ export default function AutomationClient() {
         <p style={breadcrumbStyle}>Automation</p>
         <h1 style={titleStyle}>Automation & Tool Inspector</h1>
         <p style={subtitleStyle}>
-          Foundation-level automation tools, Playwright MCP status, and
-          computer-use provider metadata. Inspection only — this is not a tool
-          runner or browser preview.
+          Automation tools, Playwright MCP status, and provider metadata.
+          Read-only inspector — use the runtime to execute tools.
         </p>
         <div style={{ padding: "0.6rem 1rem", borderRadius: "8px", backgroundColor: "#fef3c7", border: "1px solid #fde68a", color: "#92400e", fontSize: "0.85rem", marginTop: "0.75rem" }}>
-          <strong>Scaffolded module</strong> — This surface proxies metadata from the agent-runtime. No local business logic runs here. Tool execution requires a running agent-runtime with Playwright MCP wired.
+          <strong>Live connection</strong> — Shows tools and status from your agent-runtime. Read-only view; tool execution happens in the runtime.
         </div>
       </section>
 
@@ -152,8 +152,8 @@ function ToolCard({ tool }: { tool: ToolMetadata }) {
       </div>
       <p style={cardDescStyle}>{tool.description}</p>
       <div style={tagRowStyle}>
-        <span style={tagStyle}>{tool.category.replace(/_/g, " ")}</span>
-        <span style={tagStyle}>{tool.safety_level.replace(/_/g, " ")}</span>
+        <span style={tagStyle}>{titleCase(tool.category)}</span>
+        <span style={tagStyle}>{titleCase(tool.safety_level)}</span>
       </div>
       <code style={codeStyle}>{tool.id}@{tool.version}</code>
     </div>
@@ -173,7 +173,7 @@ function BackendCard({ backend }: { backend: AutomationBackend }) {
       <div style={cardHeaderStyle}>
         <span style={cardTitleStyle}>{backend.display_name}</span>
         <span style={{ ...badgeStyle, backgroundColor: statusColor }}>
-          {backend.status.replace(/_/g, " ")}
+          {titleCase(backend.status)}
         </span>
       </div>
       <ul style={noteListStyle}>
@@ -198,7 +198,7 @@ function CUProviderCard({ provider }: { provider: ComputerUseProviderMeta }) {
       <div style={cardHeaderStyle}>
         <span style={cardTitleStyle}>{provider.display_name}</span>
         <span style={{ ...badgeStyle, backgroundColor: supportColor }}>
-          {provider.computer_use_support.replace(/_/g, " ")}
+          {titleCase(provider.computer_use_support)}
         </span>
       </div>
       <ul style={noteListStyle}>

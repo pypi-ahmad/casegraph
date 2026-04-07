@@ -11,7 +11,6 @@ from casegraph_agent_sdk.tasks import (
     ProviderSelection,
     StructuredOutputSchema,
     TaskExecutionRequest,
-    TaskInput,
     TaskRegistryResponse,
 )
 
