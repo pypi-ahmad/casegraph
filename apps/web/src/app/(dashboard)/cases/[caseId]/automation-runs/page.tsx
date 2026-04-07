@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import type { SessionUser } from "@casegraph/agent-sdk";
+import { auth } from "@/lib/auth/config";
 import AutomationRunClient from "./automation-run-client";
 
 export default async function AutomationRunPage({
@@ -5,6 +8,10 @@ export default async function AutomationRunPage({
 }: {
   params: Promise<{ caseId: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/sign-in");
+  }
   const { caseId } = await params;
-  return <AutomationRunClient caseId={caseId} />;
+  return <AutomationRunClient caseId={caseId} currentUser={session.user as SessionUser} />;
 }

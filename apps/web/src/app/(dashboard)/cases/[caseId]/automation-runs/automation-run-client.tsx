@@ -13,6 +13,7 @@ import type {
   ExecutedStepRecord,
   RunArtifactRecord,
   RunEventRecord,
+  SessionUser,
   SubmissionDraftSummary,
 } from "@casegraph/agent-sdk";
 
@@ -37,14 +38,14 @@ type DecisionDraftState = {
   blockReason: string;
 };
 
-export default function AutomationRunClient({ caseId }: { caseId: string }) {
+export default function AutomationRunClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
   const [caseTitle, setCaseTitle] = useState("");
   const [drafts, setDrafts] = useState<SubmissionDraftSummary[]>([]);
   const [runs, setRuns] = useState<AutomationRunRecord[]>([]);
   const [selectedDraftId, setSelectedDraftId] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedRunId, setSelectedRunId] = useState("");
-  const [operatorId, setOperatorId] = useState("");
+  const [operatorId, setOperatorId] = useState(currentUser.id);
   const [resumeNote, setResumeNote] = useState("");
   const [decisionDrafts, setDecisionDrafts] = useState<Record<string, DecisionDraftState>>({});
   const [runDetail, setRunDetail] = useState<AutomationRunDetailResponse | null>(null);
@@ -83,7 +84,7 @@ export default function AutomationRunClient({ caseId }: { caseId: string }) {
         setRunDetail(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load automation run workspace.");
+      setError(err instanceof Error ? err.message : "Unable to load automation data. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -276,11 +277,9 @@ export default function AutomationRunClient({ caseId }: { caseId: string }) {
 
         <header style={headerStyle}>
           <p style={breadcrumbStyle}>Automation Runs</p>
-          <h1 style={titleStyle}>{caseTitle || "Automation Checkpoint Workspace"}</h1>
+          <h1 style={titleStyle}>{caseTitle || "Automated Processing"}</h1>
           <p style={subtitleStyle}>
-            Human-supervised automation execution with explicit operator checkpoints, auditable
-            decisions, resumable continuation, and metadata-only computer-use fallback hints.
-            Dangerous write actions and final submission remain blocked.
+            Review and approve each automated step for this case. You control every checkpoint.
           </p>
         </header>
 
@@ -321,7 +320,7 @@ export default function AutomationRunClient({ caseId }: { caseId: string }) {
                     />
                   </label>
                   <button type="submit" style={primaryButtonStyle} disabled={working || !selectedDraftId || !selectedPlanId}>
-                    {working ? "Working…" : "Start Supervised Run"}
+                    {working ? "Working…" : "Start Automated Processing"}
                   </button>
                 </form>
               )}
@@ -333,7 +332,7 @@ export default function AutomationRunClient({ caseId }: { caseId: string }) {
             <section style={sectionCardStyle}>
               <h2 style={sectionTitleStyle}>Case Automation Runs</h2>
               {runs.length === 0 ? (
-                <div style={subtlePanelStyle}>No automation runs have been created for this case yet.</div>
+                <div style={subtlePanelStyle}>No automation runs yet. Select a submission draft and plan above to start processing.</div>
               ) : (
                 <div style={stackStyle}>
                   {runs.map((run) => (

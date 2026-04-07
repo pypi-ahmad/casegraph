@@ -134,11 +134,9 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
 
         <header style={headerStyle}>
           <p style={breadcrumbStyle}>Workflow Packs</p>
-          <h1 style={titleStyle}>{caseTitle || "Workflow Pack Workspace"}</h1>
+          <h1 style={titleStyle}>{caseTitle || "Workflow Processing"}</h1>
           <p style={subtitleStyle}>
-            Domain-specific multi-stage workflows that compose extraction, readiness, packet
-            assembly, and submission-draft foundations into a structured operator review sequence.
-            All outputs reflect explicit case data — no fabricated facts, no autonomous decisions.
+            Run the processing workflow for this case. All outputs reflect actual case data and require your review.
           </p>
           {caseTypeId && (
             <p style={{ ...metaTextStyle, marginTop: "0.5rem" }}>
@@ -197,7 +195,7 @@ export default function WorkflowPackClient({ caseId }: { caseId: string }) {
                     Skip optional stages
                   </label>
                   <button type="submit" style={primaryButtonStyle} disabled={working || !selectedPackId}>
-                    {working ? "Working…" : "Run Workflow Pack"}
+                    {working ? "Working…" : "Start Processing"}
                   </button>
                 </form>
               )}

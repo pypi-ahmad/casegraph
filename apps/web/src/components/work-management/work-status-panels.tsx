@@ -69,7 +69,7 @@ export function WorkStatusSnapshot({
         }}
       >
         <span>Owner</span>
-        <span>{owner ? `${owner.display_name} (${owner.user_id})` : "Unassigned"}</span>
+        <span>{owner ? owner.display_name : "Unassigned"}</span>
         <span>Assignment note</span>
         <span>{status.ownership.note || "No assignment note recorded."}</span>
         <span>Due date</span>
@@ -186,7 +186,7 @@ export function AssignmentHistoryList({
                   <span>Changed by</span>
                   <span>{entry.changed_by_display_name || entry.changed_by_id || "Unknown"}</span>
                   <span>Assignee</span>
-                  <span>{assignee ? `${assignee.display_name} (${assignee.user_id})` : "Unassigned"}</span>
+                  <span>{assignee ? assignee.display_name : "Unassigned"}</span>
                 </div>
                 {entry.note && <p style={historyNoteStyle}>{entry.note}</p>}
               </article>

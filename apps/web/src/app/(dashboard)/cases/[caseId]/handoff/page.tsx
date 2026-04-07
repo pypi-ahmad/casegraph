@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import type { SessionUser } from "@casegraph/agent-sdk";
+import { auth } from "@/lib/auth/config";
 import HandoffClient from "./handoff-client";
 
 export default async function HandoffPage({
@@ -5,6 +8,10 @@ export default async function HandoffPage({
 }: {
   params: Promise<{ caseId: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user) {
+    redirect("/sign-in");
+  }
   const { caseId } = await params;
-  return <HandoffClient caseId={caseId} />;
+  return <HandoffClient caseId={caseId} currentUser={session.user as SessionUser} />;
 }

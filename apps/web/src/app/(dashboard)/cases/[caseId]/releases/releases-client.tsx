@@ -7,6 +7,7 @@ import type {
   ReleaseEligibilitySummary,
   ReleaseArtifactEntry,
   ReleaseIssue,
+  SessionUser,
   WorkStatusSummary,
 } from "@casegraph/agent-sdk";
 import { WorkStatusSnapshot } from "@/components/work-management/work-status-panels";
@@ -19,12 +20,12 @@ import { fetchCaseWorkStatus } from "@/lib/work-management-api";
 
 /* ---------- Component ---------- */
 
-export default function ReleasesClient({ caseId }: { caseId: string }) {
+export default function ReleasesClient({ caseId, currentUser }: { caseId: string; currentUser: SessionUser }) {
   const [releases, setReleases] = useState<ReleaseBundleRecord[]>([]);
   const [eligibility, setEligibility] = useState<ReleaseEligibilitySummary | null>(null);
   const [workStatus, setWorkStatus] = useState<WorkStatusSummary | null>(null);
   const [note, setNote] = useState("");
-  const [operatorId, setOperatorId] = useState("");
+  const [operatorId, setOperatorId] = useState(currentUser.id);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +45,7 @@ export default function ReleasesClient({ caseId }: { caseId: string }) {
       setEligibility(eligRes.eligibility);
       setWorkStatus(workResponse.work_status);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load release data.");
+      setError(e instanceof Error ? e.message : "Failed to load release data. Try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -58,8 +59,8 @@ export default function ReleasesClient({ caseId }: { caseId: string }) {
     setLastIssues([]);
     try {
       const result = await createRelease(caseId, {
-        operator_id: operatorId.trim() || "web_operator",
-        operator_display_name: operatorId.trim() || "Web operator",
+        operator_id: operatorId.trim() || currentUser.id,
+        operator_display_name: currentUser.name || currentUser.email,
         note: note.trim(),
         generate_packet: true,
         generate_submission_draft: true,
@@ -75,7 +76,7 @@ export default function ReleasesClient({ caseId }: { caseId: string }) {
         setSelectedRelease(result.release);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Release creation failed.");
+      setError(e instanceof Error ? e.message : "Release creation failed. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -93,9 +94,9 @@ export default function ReleasesClient({ caseId }: { caseId: string }) {
         <Link href={`/cases/${caseId}/audit`} style={secondaryLinkStyle}>Audit timeline</Link>
       </div>
 
-      <h1 style={headingStyle}>Release bundles</h1>
+      <h1 style={headingStyle}>Releases</h1>
       <p style={subtitleStyle}>
-        Generate and inspect frozen release bundles from signed-off reviewed snapshots.
+        View and create finalized case releases.
       </p>
 
       {loading && <p style={mutedStyle}>Loading…</p>}
@@ -202,7 +203,7 @@ export default function ReleasesClient({ caseId }: { caseId: string }) {
       <section style={sectionStyle}>
         <h2 style={sectionHeadingStyle}>Past releases ({releases.length})</h2>
         {releases.length === 0 && !loading && (
-          <p style={mutedStyle}>No release bundles yet.</p>
+          <p style={mutedStyle}>No releases yet. Complete the review process and create an export to prepare a release.</p>
         )}
         {releases.map(r => (
           <div
