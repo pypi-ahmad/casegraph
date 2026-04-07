@@ -245,7 +245,6 @@ pnpm smoke:api      # Endpoint smoke test (requires running API)
 | Document | Description |
 | --- | --- |
 | [USAGE.md](USAGE.md) | Operator usage guide — setup, workflow, features, troubleshooting |
-| [docs/README.md](docs/README.md) | Documentation index |
 | [docs/product-thesis.md](docs/product-thesis.md) | Problem statement, solution thesis, guardrails |
 | [docs/target-pack-foundation.md](docs/target-pack-foundation.md) | Target-pack metadata, compatibility, field schemas |
 | [docs/auditability-foundation.md](docs/auditability-foundation.md) | Audit trail, decision ledger, lineage scope |
